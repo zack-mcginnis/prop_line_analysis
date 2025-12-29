@@ -1,0 +1,39 @@
+# FastAPI and server
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+
+# Database
+sqlalchemy==2.0.25
+psycopg2-binary==2.9.9
+alembic==1.13.1
+
+# Async HTTP client
+httpx==0.26.0
+aiohttp==3.9.1
+
+# Web scraping
+beautifulsoup4==4.12.3
+lxml==5.1.0
+playwright==1.41.0
+
+# Scheduling
+apscheduler==3.10.4
+
+# Data processing
+pandas==2.1.4
+numpy==1.26.3
+
+# Configuration
+pydantic==2.5.3
+pydantic-settings==2.1.0
+python-dotenv==1.0.0
+
+# Statistical analysis
+scipy==1.12.0
+statsmodels==0.14.1
+
+# Utilities
+tenacity==8.2.3
+python-dateutil==2.8.2
+
