@@ -74,10 +74,26 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     
-    # CORS middleware
+    # CORS middleware - allow frontend to connect
+    # In production, Railway frontends will be on .railway.app domain
+    allowed_origins = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+    ]
+    
+    # Add Railway frontend URL from environment if set
+    frontend_url = settings.frontend_url
+    if frontend_url:
+        allowed_origins.append(frontend_url)
+    
+    # In production, also allow all .railway.app domains
+    if settings.environment == "production":
+        allowed_origins.append("https://*.railway.app")
+    
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000", "http://localhost:5173"],
+        allow_origins=allowed_origins,
+        allow_origin_regex=r"https://.*\.railway\.app",  # Allow all Railway domains
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

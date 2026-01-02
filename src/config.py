@@ -65,6 +65,10 @@ class Settings(BaseSettings):
         default=True,
         description="Enable debug mode"
     )
+    frontend_url: str = Field(
+        default="",
+        description="Frontend URL for CORS (optional, Railway domains auto-allowed)"
+    )
     
     class Config:
         env_file = ".env"

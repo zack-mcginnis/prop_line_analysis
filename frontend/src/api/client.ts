@@ -1,7 +1,16 @@
 import axios from 'axios'
 
+// In production, use the backend URL from environment variable
+// In development, use relative path (Vite proxy handles it)
+const getBaseURL = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return `${import.meta.env.VITE_API_URL}/api`
+  }
+  return '/api'
+}
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: getBaseURL(),
   headers: {
     'Content-Type': 'application/json',
   },
@@ -22,10 +31,20 @@ export const connectDashboardWebSocket = (
 
   // Determine WebSocket URL
   // In development, Vite proxy handles /ws -> ws://localhost:8000
-  // In production, use same host as the page
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  const host = window.location.host
-  const wsUrl = `${protocol}//${host}/ws/dashboard`
+  // In production, use backend URL from environment or same host
+  let wsUrl: string
+  if (import.meta.env.VITE_API_URL) {
+    // Use backend URL from environment variable
+    const apiUrl = import.meta.env.VITE_API_URL
+    const protocol = apiUrl.startsWith('https') ? 'wss:' : 'ws:'
+    const host = apiUrl.replace(/^https?:\/\//, '')
+    wsUrl = `${protocol}//${host}/ws/dashboard`
+  } else {
+    // Development or same-host deployment
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const host = window.location.host
+    wsUrl = `${protocol}//${host}/ws/dashboard`
+  }
 
   console.log('Connecting to WebSocket:', wsUrl)
   dashboardWebSocket = new WebSocket(wsUrl)
