@@ -23,36 +23,44 @@ active_websockets: Set[WebSocket] = set()
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
     # Startup
-    print("=" * 60)
-    print("Starting application...")
+    print("=" * 60, flush=True)
+    print("Starting application...", flush=True)
+    print("=" * 60, flush=True)
     
     # Don't call init_db() here - let Alembic migrations handle table creation
     # This prevents crashes if database isn't ready yet
     # Tables are created by: alembic upgrade head (run before uvicorn starts)
     
-    # Always start scheduler (includes Week 18 every-minute job)
-    try:
-        scheduler = get_scheduler()
-        scheduler.start()
-        print("✓ Scheduler started")
-    except Exception as e:
-        print(f"⚠ Warning: Scheduler failed to start: {e}")
-        # Continue anyway - scheduler isn't critical for API to work
+    # Delay scheduler start to ensure app responds to healthchecks first
+    # Start scheduler in background after a delay
+    async def delayed_scheduler_start():
+        await asyncio.sleep(5)  # Wait 5 seconds before starting scheduler
+        try:
+            scheduler = get_scheduler()
+            scheduler.start()
+            print("✓ Scheduler started (delayed)", flush=True)
+        except Exception as e:
+            print(f"⚠ Warning: Scheduler failed to start: {e}", flush=True)
+            import traceback
+            traceback.print_exc()
     
-    print("=" * 60)
+    # Start scheduler in background task
+    asyncio.create_task(delayed_scheduler_start())
+    print("✓ Application ready (scheduler will start in 5s)", flush=True)
+    print("=" * 60, flush=True)
     
     yield
     
     # Shutdown
-    print("=" * 60)
-    print("Shutting down application...")
+    print("=" * 60, flush=True)
+    print("Shutting down application...", flush=True)
     try:
         scheduler = get_scheduler()
         scheduler.stop()
-        print("✓ Scheduler stopped")
+        print("✓ Scheduler stopped", flush=True)
     except Exception as e:
-        print(f"⚠ Warning: Scheduler shutdown error: {e}")
-    print("=" * 60)
+        print(f"⚠ Warning: Scheduler shutdown error: {e}", flush=True)
+    print("=" * 60, flush=True)
 
 
 def create_app() -> FastAPI:

@@ -25,6 +25,23 @@ echo "✓ DATABASE_URL is set"
 PORT=${PORT:-8000}
 echo "✓ Using PORT: $PORT"
 
+# Wait for database to be ready
+echo ""
+echo "Waiting for database to be ready..."
+max_retries=30
+retry_count=0
+until pg_isready -d "$DATABASE_URL" 2>/dev/null || [ $retry_count -eq $max_retries ]; do
+    retry_count=$((retry_count + 1))
+    echo "Waiting for database... ($retry_count/$max_retries)"
+    sleep 2
+done
+
+if [ $retry_count -eq $max_retries ]; then
+    echo "⚠ Warning: Could not verify database connection, but continuing anyway..."
+else
+    echo "✓ Database is ready"
+fi
+
 # Run database migrations
 echo ""
 echo "Running database migrations..."
