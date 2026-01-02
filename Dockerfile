@@ -39,6 +39,10 @@ COPY src/ ./src/
 COPY alembic/ ./alembic/
 COPY alembic.ini .
 COPY init.sql .
+COPY start.sh .
+
+# Make startup script executable
+RUN chmod +x start.sh
 
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
@@ -47,11 +51,9 @@ USER appuser
 # Expose port (Railway will override with PORT env var)
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+# Note: Railway has its own healthcheck system, so we don't need a Docker HEALTHCHECK
+# The Docker HEALTHCHECK uses hardcoded port which conflicts with Railway's dynamic PORT
 
-# Run database migrations and start the application
-CMD alembic upgrade head && \
-    uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT:-8000}
+# Run startup script that handles migrations and starts the server
+CMD ["./start.sh"]
 

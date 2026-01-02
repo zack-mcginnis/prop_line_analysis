@@ -25,11 +25,20 @@ async def lifespan(app: FastAPI):
     # Startup
     print("=" * 60)
     print("Starting application...")
-    init_db()
+    
+    # Don't call init_db() here - let Alembic migrations handle table creation
+    # This prevents crashes if database isn't ready yet
+    # Tables are created by: alembic upgrade head (run before uvicorn starts)
     
     # Always start scheduler (includes Week 18 every-minute job)
-    scheduler = get_scheduler()
-    scheduler.start()
+    try:
+        scheduler = get_scheduler()
+        scheduler.start()
+        print("✓ Scheduler started")
+    except Exception as e:
+        print(f"⚠ Warning: Scheduler failed to start: {e}")
+        # Continue anyway - scheduler isn't critical for API to work
+    
     print("=" * 60)
     
     yield
@@ -37,8 +46,12 @@ async def lifespan(app: FastAPI):
     # Shutdown
     print("=" * 60)
     print("Shutting down application...")
-    scheduler = get_scheduler()
-    scheduler.stop()
+    try:
+        scheduler = get_scheduler()
+        scheduler.stop()
+        print("✓ Scheduler stopped")
+    except Exception as e:
+        print(f"⚠ Warning: Scheduler shutdown error: {e}")
     print("=" * 60)
 
 
