@@ -50,9 +50,13 @@ EXPOSE 8000
 # Note: Running as root for now to debug Railway deployment issues
 # TODO: Add non-root user back after deployment works
 
+# Copy run script
+COPY run.py .
+RUN chmod +x run.py
+
 # Note: Railway has its own healthcheck system, so we don't need a Docker HEALTHCHECK
 # The Docker HEALTHCHECK uses hardcoded port which conflicts with Railway's dynamic PORT
 
-# Debug: Print environment and start uvicorn with explicit port binding
-CMD ["sh", "-c", "echo '=== RAILWAY DEPLOYMENT DEBUG ===' && echo PORT=${PORT} && echo DATABASE_URL is set: $([ -n \"$DATABASE_URL\" ] && echo YES || echo NO) && echo Starting uvicorn... && uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT:-8000} --log-level info"]
+# Use Python script instead of shell command for better logging
+CMD ["python3", "run.py"]
 
