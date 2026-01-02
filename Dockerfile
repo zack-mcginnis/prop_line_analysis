@@ -55,5 +55,6 @@ EXPOSE 8000
 # The Docker HEALTHCHECK uses hardcoded port which conflicts with Railway's dynamic PORT
 
 # Run startup script that handles migrations and starts the server
-CMD ["./start.sh"]
+# Use sh explicitly to avoid any bash-specific issues
+CMD ["/bin/sh", "./start.sh"]
 
