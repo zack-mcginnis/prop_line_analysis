@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Frontend
+frontend/
+node_modules/
+
+# Development
+.git/
+.gitignore
+*.md
+!README.md
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Scripts (not needed in production)
+scripts/
+
+# Mock data
+mock_data/
+
+# Documentation
+*.md
+!DEPLOYMENT.md
+
+# Database
+*.db
+*.sqlite
+postgres_data/
+redis_data/
+
+# Logs
+*.log
+

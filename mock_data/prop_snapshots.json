@@ -1,0 +1,437 @@
+{
+  "description": "Mock prop line data with 5-minute intervals for testing time window analysis.",
+  "scenarios": {
+    "gradual_then_sharp_drop": "Bucky Irving - Gradual decline then sharp drop in last 30min",
+    "early_drop_stable": "Saquon Barkley - Early drop then stable",
+    "very_stable": "Derrick Henry - Minimal movement throughout",
+    "gradual_increase": "Jahmyr Gibbs - Steady increase over time",
+    "late_sharp_drop": "Christian McCaffrey - Stable then sudden late drop",
+    "accelerating_drop": "Tyreek Hill - Drop accelerates over time",
+    "sudden_late_drop": "CeeDee Lamb - Sudden drop in last 15 minutes"
+  },
+  "snapshots": [
+    {
+      "_comment": "Scenario 1: Bucky Irving - Gradual decline then sharp drop",
+      "event_id": "mock_game_001",
+      "game_commence_time": "2025-01-05T18:00:00Z",
+      "home_team": "Tampa Bay Buccaneers",
+      "away_team": "Carolina Panthers",
+      "player_name": "Bucky Irving",
+      "player_slug": "bucky-irving",
+      "prop_type": "rushing_yards",
+      "snapshots_timeline": [
+        {
+          "snapshot_time": "2025-01-05T15:00:00Z",
+          "hours_before_kickoff": 3.0,
+          "consensus_line": 85.5,
+          "draftkings_line": 85.0,
+          "fanduel_line": 86.0,
+          "betmgm_line": 85.5,
+          "caesars_line": 86.0,
+          "pointsbet_line": 85.0
+        },
+        {
+          "snapshot_time": "2025-01-05T15:05:00Z",
+          "hours_before_kickoff": 2.92,
+          "consensus_line": 85.0,
+          "draftkings_line": 84.5,
+          "fanduel_line": 85.5,
+          "betmgm_line": 85.0,
+          "caesars_line": 85.5,
+          "pointsbet_line": 84.5
+        },
+        {
+          "snapshot_time": "2025-01-05T15:10:00Z",
+          "hours_before_kickoff": 2.83,
+          "consensus_line": 84.5,
+          "draftkings_line": 84.0,
+          "fanduel_line": 85.0,
+          "betmgm_line": 84.5,
+          "caesars_line": 85.0,
+          "pointsbet_line": 84.0
+        },
+        {
+          "snapshot_time": "2025-01-05T15:15:00Z",
+          "hours_before_kickoff": 2.75,
+          "consensus_line": 84.0,
+          "draftkings_line": 83.5,
+          "fanduel_line": 84.5,
+          "betmgm_line": 84.0,
+          "caesars_line": 84.5,
+          "pointsbet_line": 83.5
+        },
+        {
+          "snapshot_time": "2025-01-05T15:20:00Z",
+          "hours_before_kickoff": 2.67,
+          "consensus_line": 83.5,
+          "draftkings_line": 83.0,
+          "fanduel_line": 84.0,
+          "betmgm_line": 83.5,
+          "caesars_line": 84.0,
+          "pointsbet_line": 83.0
+        },
+        {
+          "snapshot_time": "2025-01-05T15:25:00Z",
+          "hours_before_kickoff": 2.58,
+          "consensus_line": 83.0,
+          "draftkings_line": 82.5,
+          "fanduel_line": 83.5,
+          "betmgm_line": 83.0,
+          "caesars_line": 83.5,
+          "pointsbet_line": 82.5
+        },
+        {
+          "snapshot_time": "2025-01-05T15:30:00Z",
+          "hours_before_kickoff": 2.5,
+          "consensus_line": 82.0,
+          "draftkings_line": 81.5,
+          "fanduel_line": 82.5,
+          "betmgm_line": 82.0,
+          "caesars_line": 82.5,
+          "pointsbet_line": 81.5,
+          "_note": "Started dropping faster"
+        },
+        {
+          "snapshot_time": "2025-01-05T15:35:00Z",
+          "hours_before_kickoff": 2.42,
+          "consensus_line": 81.0,
+          "draftkings_line": 80.5,
+          "fanduel_line": 81.5,
+          "betmgm_line": 81.0,
+          "caesars_line": 81.5,
+          "pointsbet_line": 80.5
+        },
+        {
+          "snapshot_time": "2025-01-05T15:40:00Z",
+          "hours_before_kickoff": 2.33,
+          "consensus_line": 80.0,
+          "draftkings_line": 79.5,
+          "fanduel_line": 80.5,
+          "betmgm_line": 80.0,
+          "caesars_line": 80.5,
+          "pointsbet_line": 79.5
+        },
+        {
+          "snapshot_time": "2025-01-05T15:45:00Z",
+          "hours_before_kickoff": 2.25,
+          "consensus_line": 79.0,
+          "draftkings_line": 78.5,
+          "fanduel_line": 79.5,
+          "betmgm_line": 79.0,
+          "caesars_line": 79.5,
+          "pointsbet_line": 78.5
+        },
+        {
+          "snapshot_time": "2025-01-05T15:50:00Z",
+          "hours_before_kickoff": 2.17,
+          "consensus_line": 78.5,
+          "draftkings_line": 78.0,
+          "fanduel_line": 79.0,
+          "betmgm_line": 78.5,
+          "caesars_line": 79.0,
+          "pointsbet_line": 78.0
+        },
+        {
+          "snapshot_time": "2025-01-05T15:55:00Z",
+          "hours_before_kickoff": 2.08,
+          "consensus_line": 78.0,
+          "draftkings_line": 77.5,
+          "fanduel_line": 78.5,
+          "betmgm_line": 78.0,
+          "caesars_line": 78.5,
+          "pointsbet_line": 77.5
+        },
+        {
+          "snapshot_time": "2025-01-05T16:00:00Z",
+          "hours_before_kickoff": 2.0,
+          "consensus_line": 77.5,
+          "draftkings_line": 77.0,
+          "fanduel_line": 78.0,
+          "betmgm_line": 77.5,
+          "caesars_line": 78.0,
+          "pointsbet_line": 77.0,
+          "_note": "TOTAL DROP: -8.0 yards (9.4%) over 60 minutes"
+        }
+      ],
+      "actual_result": {
+        "rushing_yards": 62,
+        "went_under": true,
+        "final_line": 77.5
+      }
+    },
+    {
+      "_comment": "Scenario 2: Saquon Barkley - Early drop then stable",
+      "event_id": "mock_game_002",
+      "game_commence_time": "2025-01-05T21:30:00Z",
+      "home_team": "New York Giants",
+      "away_team": "Philadelphia Eagles",
+      "player_name": "Saquon Barkley",
+      "player_slug": "saquon-barkley",
+      "prop_type": "rushing_yards",
+      "snapshots_timeline": [
+        {
+          "snapshot_time": "2025-01-05T19:30:00Z",
+          "hours_before_kickoff": 2.0,
+          "consensus_line": 95.5,
+          "draftkings_line": 95.0,
+          "fanduel_line": 96.0,
+          "betmgm_line": 95.5
+        },
+        {
+          "snapshot_time": "2025-01-05T19:35:00Z",
+          "hours_before_kickoff": 1.92,
+          "consensus_line": 92.5,
+          "draftkings_line": 92.0,
+          "fanduel_line": 93.0,
+          "betmgm_line": 92.5,
+          "_note": "Sharp early drop"
+        },
+        {
+          "snapshot_time": "2025-01-05T19:40:00Z",
+          "hours_before_kickoff": 1.83,
+          "consensus_line": 90.0,
+          "draftkings_line": 89.5,
+          "fanduel_line": 90.5,
+          "betmgm_line": 90.0
+        },
+        {
+          "snapshot_time": "2025-01-05T19:45:00Z",
+          "hours_before_kickoff": 1.75,
+          "consensus_line": 89.0,
+          "draftkings_line": 88.5,
+          "fanduel_line": 89.5,
+          "betmgm_line": 89.0
+        },
+        {
+          "snapshot_time": "2025-01-05T19:50:00Z",
+          "hours_before_kickoff": 1.67,
+          "consensus_line": 88.5,
+          "draftkings_line": 88.0,
+          "fanduel_line": 89.0,
+          "betmgm_line": 88.5,
+          "_note": "Stabilizing"
+        },
+        {
+          "snapshot_time": "2025-01-05T19:55:00Z",
+          "hours_before_kickoff": 1.58,
+          "consensus_line": 88.5,
+          "draftkings_line": 88.0,
+          "fanduel_line": 89.0,
+          "betmgm_line": 88.5
+        },
+        {
+          "snapshot_time": "2025-01-05T20:00:00Z",
+          "hours_before_kickoff": 1.5,
+          "consensus_line": 88.5,
+          "draftkings_line": 88.0,
+          "fanduel_line": 89.0,
+          "betmgm_line": 88.5
+        },
+        {
+          "snapshot_time": "2025-01-05T20:05:00Z",
+          "hours_before_kickoff": 1.42,
+          "consensus_line": 88.5,
+          "draftkings_line": 88.0,
+          "fanduel_line": 89.0,
+          "betmgm_line": 88.5
+        },
+        {
+          "snapshot_time": "2025-01-05T20:10:00Z",
+          "hours_before_kickoff": 1.33,
+          "consensus_line": 88.5,
+          "draftkings_line": 88.0,
+          "fanduel_line": 89.0,
+          "betmgm_line": 88.5
+        },
+        {
+          "snapshot_time": "2025-01-05T20:15:00Z",
+          "hours_before_kickoff": 1.25,
+          "consensus_line": 88.5,
+          "draftkings_line": 88.0,
+          "fanduel_line": 89.0,
+          "betmgm_line": 88.5
+        },
+        {
+          "snapshot_time": "2025-01-05T20:20:00Z",
+          "hours_before_kickoff": 1.17,
+          "consensus_line": 88.5,
+          "draftkings_line": 88.0,
+          "fanduel_line": 89.0,
+          "betmgm_line": 88.5
+        },
+        {
+          "snapshot_time": "2025-01-05T20:25:00Z",
+          "hours_before_kickoff": 1.08,
+          "consensus_line": 88.5,
+          "draftkings_line": 88.0,
+          "fanduel_line": 89.0,
+          "betmgm_line": 88.5
+        },
+        {
+          "snapshot_time": "2025-01-05T20:30:00Z",
+          "hours_before_kickoff": 1.0,
+          "consensus_line": 88.5,
+          "draftkings_line": 88.0,
+          "fanduel_line": 89.0,
+          "betmgm_line": 88.5,
+          "_note": "Stable after early drop"
+        }
+      ],
+      "actual_result": {
+        "rushing_yards": 102,
+        "went_under": false,
+        "final_line": 88.5
+      }
+    },
+    {
+      "_comment": "Scenario 3: Derrick Henry - Very stable",
+      "event_id": "mock_game_003",
+      "game_commence_time": "2025-01-05T18:00:00Z",
+      "home_team": "Tennessee Titans",
+      "away_team": "Jacksonville Jaguars",
+      "player_name": "Derrick Henry",
+      "player_slug": "derrick-henry",
+      "prop_type": "rushing_yards",
+      "snapshots_timeline": [
+        {"snapshot_time": "2025-01-05T16:00:00Z", "hours_before_kickoff": 2.0, "consensus_line": 92.5, "draftkings_line": 92.0, "fanduel_line": 93.0, "betmgm_line": 92.5},
+        {"snapshot_time": "2025-01-05T16:05:00Z", "hours_before_kickoff": 1.92, "consensus_line": 92.5, "draftkings_line": 92.0, "fanduel_line": 93.0, "betmgm_line": 92.5},
+        {"snapshot_time": "2025-01-05T16:10:00Z", "hours_before_kickoff": 1.83, "consensus_line": 92.0, "draftkings_line": 91.5, "fanduel_line": 92.5, "betmgm_line": 92.0},
+        {"snapshot_time": "2025-01-05T16:15:00Z", "hours_before_kickoff": 1.75, "consensus_line": 92.0, "draftkings_line": 91.5, "fanduel_line": 92.5, "betmgm_line": 92.0},
+        {"snapshot_time": "2025-01-05T16:20:00Z", "hours_before_kickoff": 1.67, "consensus_line": 92.0, "draftkings_line": 91.5, "fanduel_line": 92.5, "betmgm_line": 92.0},
+        {"snapshot_time": "2025-01-05T16:25:00Z", "hours_before_kickoff": 1.58, "consensus_line": 92.0, "draftkings_line": 91.5, "fanduel_line": 92.5, "betmgm_line": 92.0},
+        {"snapshot_time": "2025-01-05T16:30:00Z", "hours_before_kickoff": 1.5, "consensus_line": 91.5, "draftkings_line": 91.0, "fanduel_line": 92.0, "betmgm_line": 91.5},
+        {"snapshot_time": "2025-01-05T16:35:00Z", "hours_before_kickoff": 1.42, "consensus_line": 91.5, "draftkings_line": 91.0, "fanduel_line": 92.0, "betmgm_line": 91.5},
+        {"snapshot_time": "2025-01-05T16:40:00Z", "hours_before_kickoff": 1.33, "consensus_line": 91.5, "draftkings_line": 91.0, "fanduel_line": 92.0, "betmgm_line": 91.5},
+        {"snapshot_time": "2025-01-05T16:45:00Z", "hours_before_kickoff": 1.25, "consensus_line": 91.5, "draftkings_line": 91.0, "fanduel_line": 92.0, "betmgm_line": 91.5},
+        {"snapshot_time": "2025-01-05T16:50:00Z", "hours_before_kickoff": 1.17, "consensus_line": 91.5, "draftkings_line": 91.0, "fanduel_line": 92.0, "betmgm_line": 91.5},
+        {"snapshot_time": "2025-01-05T16:55:00Z", "hours_before_kickoff": 1.08, "consensus_line": 91.5, "draftkings_line": 91.0, "fanduel_line": 92.0, "betmgm_line": 91.5},
+        {"snapshot_time": "2025-01-05T17:00:00Z", "hours_before_kickoff": 1.0, "consensus_line": 91.5, "draftkings_line": 91.0, "fanduel_line": 92.0, "betmgm_line": 91.5, "_note": "Very stable, only -1.0 yards"}
+      ],
+      "actual_result": {
+        "rushing_yards": 98,
+        "went_under": false,
+        "final_line": 91.5
+      }
+    },
+    {
+      "_comment": "Scenario 4: Jahmyr Gibbs - Gradual increase",
+      "event_id": "mock_game_004",
+      "game_commence_time": "2025-01-05T21:30:00Z",
+      "home_team": "Detroit Lions",
+      "away_team": "Green Bay Packers",
+      "player_name": "Jahmyr Gibbs",
+      "player_slug": "jahmyr-gibbs",
+      "prop_type": "rushing_yards",
+      "snapshots_timeline": [
+        {"snapshot_time": "2025-01-05T20:30:00Z", "hours_before_kickoff": 1.0, "consensus_line": 68.5, "draftkings_line": 68.0, "fanduel_line": 69.0, "betmgm_line": 68.5},
+        {"snapshot_time": "2025-01-05T20:35:00Z", "hours_before_kickoff": 0.92, "consensus_line": 69.0, "draftkings_line": 68.5, "fanduel_line": 69.5, "betmgm_line": 69.0},
+        {"snapshot_time": "2025-01-05T20:40:00Z", "hours_before_kickoff": 0.83, "consensus_line": 69.5, "draftkings_line": 69.0, "fanduel_line": 70.0, "betmgm_line": 69.5},
+        {"snapshot_time": "2025-01-05T20:45:00Z", "hours_before_kickoff": 0.75, "consensus_line": 70.0, "draftkings_line": 69.5, "fanduel_line": 70.5, "betmgm_line": 70.0},
+        {"snapshot_time": "2025-01-05T20:50:00Z", "hours_before_kickoff": 0.67, "consensus_line": 70.5, "draftkings_line": 70.0, "fanduel_line": 71.0, "betmgm_line": 70.5},
+        {"snapshot_time": "2025-01-05T20:55:00Z", "hours_before_kickoff": 0.58, "consensus_line": 71.0, "draftkings_line": 70.5, "fanduel_line": 71.5, "betmgm_line": 71.0},
+        {"snapshot_time": "2025-01-05T21:00:00Z", "hours_before_kickoff": 0.5, "consensus_line": 71.5, "draftkings_line": 71.0, "fanduel_line": 72.0, "betmgm_line": 71.5},
+        {"snapshot_time": "2025-01-05T21:05:00Z", "hours_before_kickoff": 0.42, "consensus_line": 72.0, "draftkings_line": 71.5, "fanduel_line": 72.5, "betmgm_line": 72.0},
+        {"snapshot_time": "2025-01-05T21:10:00Z", "hours_before_kickoff": 0.33, "consensus_line": 72.5, "draftkings_line": 72.0, "fanduel_line": 73.0, "betmgm_line": 72.5},
+        {"snapshot_time": "2025-01-05T21:15:00Z", "hours_before_kickoff": 0.25, "consensus_line": 73.0, "draftkings_line": 72.5, "fanduel_line": 73.5, "betmgm_line": 73.0},
+        {"snapshot_time": "2025-01-05T21:20:00Z", "hours_before_kickoff": 0.17, "consensus_line": 73.5, "draftkings_line": 73.0, "fanduel_line": 74.0, "betmgm_line": 73.5},
+        {"snapshot_time": "2025-01-05T21:25:00Z", "hours_before_kickoff": 0.08, "consensus_line": 74.0, "draftkings_line": 73.5, "fanduel_line": 74.5, "betmgm_line": 74.0},
+        {"snapshot_time": "2025-01-05T21:30:00Z", "hours_before_kickoff": 0.0, "consensus_line": 74.5, "draftkings_line": 74.0, "fanduel_line": 75.0, "betmgm_line": 74.5, "_note": "Steady increase +6.0 yards"}
+      ],
+      "actual_result": {
+        "rushing_yards": 89,
+        "went_under": false,
+        "final_line": 74.5
+      }
+    },
+    {
+      "_comment": "Scenario 5: Christian McCaffrey - Late sharp drop",
+      "event_id": "mock_game_005",
+      "game_commence_time": "2025-01-06T01:20:00Z",
+      "home_team": "San Francisco 49ers",
+      "away_team": "Arizona Cardinals",
+      "player_name": "Christian McCaffrey",
+      "player_slug": "christian-mccaffrey",
+      "prop_type": "rushing_yards",
+      "snapshots_timeline": [
+        {"snapshot_time": "2025-01-06T00:20:00Z", "hours_before_kickoff": 1.0, "consensus_line": 98.5, "draftkings_line": 98.0, "fanduel_line": 99.0, "betmgm_line": 98.5},
+        {"snapshot_time": "2025-01-06T00:25:00Z", "hours_before_kickoff": 0.92, "consensus_line": 98.0, "draftkings_line": 97.5, "fanduel_line": 98.5, "betmgm_line": 98.0},
+        {"snapshot_time": "2025-01-06T00:30:00Z", "hours_before_kickoff": 0.83, "consensus_line": 98.0, "draftkings_line": 97.5, "fanduel_line": 98.5, "betmgm_line": 98.0},
+        {"snapshot_time": "2025-01-06T00:35:00Z", "hours_before_kickoff": 0.75, "consensus_line": 97.5, "draftkings_line": 97.0, "fanduel_line": 98.0, "betmgm_line": 97.5},
+        {"snapshot_time": "2025-01-06T00:40:00Z", "hours_before_kickoff": 0.67, "consensus_line": 97.5, "draftkings_line": 97.0, "fanduel_line": 98.0, "betmgm_line": 97.5},
+        {"snapshot_time": "2025-01-06T00:45:00Z", "hours_before_kickoff": 0.58, "consensus_line": 97.0, "draftkings_line": 96.5, "fanduel_line": 97.5, "betmgm_line": 97.0},
+        {"snapshot_time": "2025-01-06T00:50:00Z", "hours_before_kickoff": 0.5, "consensus_line": 96.5, "draftkings_line": 96.0, "fanduel_line": 97.0, "betmgm_line": 96.5},
+        {"snapshot_time": "2025-01-06T00:55:00Z", "hours_before_kickoff": 0.42, "consensus_line": 95.5, "draftkings_line": 95.0, "fanduel_line": 96.0, "betmgm_line": 95.5, "_note": "Starting to drop"},
+        {"snapshot_time": "2025-01-06T01:00:00Z", "hours_before_kickoff": 0.33, "consensus_line": 94.0, "draftkings_line": 93.5, "fanduel_line": 94.5, "betmgm_line": 94.0, "_note": "Sharp drop"},
+        {"snapshot_time": "2025-01-06T01:05:00Z", "hours_before_kickoff": 0.25, "consensus_line": 92.5, "draftkings_line": 92.0, "fanduel_line": 93.0, "betmgm_line": 92.5},
+        {"snapshot_time": "2025-01-06T01:10:00Z", "hours_before_kickoff": 0.17, "consensus_line": 91.5, "draftkings_line": 91.0, "fanduel_line": 92.0, "betmgm_line": 91.5},
+        {"snapshot_time": "2025-01-06T01:15:00Z", "hours_before_kickoff": 0.08, "consensus_line": 91.5, "draftkings_line": 91.0, "fanduel_line": 92.0, "betmgm_line": 91.5},
+        {"snapshot_time": "2025-01-06T01:20:00Z", "hours_before_kickoff": 0.0, "consensus_line": 91.5, "draftkings_line": 91.0, "fanduel_line": 92.0, "betmgm_line": 91.5, "_note": "Total drop -7.0 yards in last 30 min"}
+      ],
+      "actual_result": {
+        "rushing_yards": 78,
+        "went_under": true,
+        "final_line": 91.5
+      }
+    },
+    {
+      "_comment": "Scenario 6: Tyreek Hill - Accelerating drop (receiving)",
+      "event_id": "mock_game_006",
+      "game_commence_time": "2025-01-05T18:00:00Z",
+      "home_team": "Miami Dolphins",
+      "away_team": "Buffalo Bills",
+      "player_name": "Tyreek Hill",
+      "player_slug": "tyreek-hill",
+      "prop_type": "receiving_yards",
+      "snapshots_timeline": [
+        {"snapshot_time": "2025-01-05T17:00:00Z", "hours_before_kickoff": 1.0, "consensus_line": 87.5, "draftkings_line": 87.0, "fanduel_line": 88.0, "betmgm_line": 87.5},
+        {"snapshot_time": "2025-01-05T17:05:00Z", "hours_before_kickoff": 0.92, "consensus_line": 87.0, "draftkings_line": 86.5, "fanduel_line": 87.5, "betmgm_line": 87.0},
+        {"snapshot_time": "2025-01-05T17:10:00Z", "hours_before_kickoff": 0.83, "consensus_line": 86.5, "draftkings_line": 86.0, "fanduel_line": 87.0, "betmgm_line": 86.5},
+        {"snapshot_time": "2025-01-05T17:15:00Z", "hours_before_kickoff": 0.75, "consensus_line": 86.0, "draftkings_line": 85.5, "fanduel_line": 86.5, "betmgm_line": 86.0},
+        {"snapshot_time": "2025-01-05T17:20:00Z", "hours_before_kickoff": 0.67, "consensus_line": 85.0, "draftkings_line": 84.5, "fanduel_line": 85.5, "betmgm_line": 85.0, "_note": "Accelerating"},
+        {"snapshot_time": "2025-01-05T17:25:00Z", "hours_before_kickoff": 0.58, "consensus_line": 84.0, "draftkings_line": 83.5, "fanduel_line": 84.5, "betmgm_line": 84.0},
+        {"snapshot_time": "2025-01-05T17:30:00Z", "hours_before_kickoff": 0.5, "consensus_line": 83.0, "draftkings_line": 82.5, "fanduel_line": 83.5, "betmgm_line": 83.0},
+        {"snapshot_time": "2025-01-05T17:35:00Z", "hours_before_kickoff": 0.42, "consensus_line": 82.0, "draftkings_line": 81.5, "fanduel_line": 82.5, "betmgm_line": 82.0},
+        {"snapshot_time": "2025-01-05T17:40:00Z", "hours_before_kickoff": 0.33, "consensus_line": 81.0, "draftkings_line": 80.5, "fanduel_line": 81.5, "betmgm_line": 81.0},
+        {"snapshot_time": "2025-01-05T17:45:00Z", "hours_before_kickoff": 0.25, "consensus_line": 80.5, "draftkings_line": 80.0, "fanduel_line": 81.0, "betmgm_line": 80.5},
+        {"snapshot_time": "2025-01-05T17:50:00Z", "hours_before_kickoff": 0.17, "consensus_line": 80.0, "draftkings_line": 79.5, "fanduel_line": 80.5, "betmgm_line": 80.0},
+        {"snapshot_time": "2025-01-05T17:55:00Z", "hours_before_kickoff": 0.08, "consensus_line": 79.5, "draftkings_line": 79.0, "fanduel_line": 80.0, "betmgm_line": 79.5},
+        {"snapshot_time": "2025-01-05T18:00:00Z", "hours_before_kickoff": 0.0, "consensus_line": 79.5, "draftkings_line": 79.0, "fanduel_line": 80.0, "betmgm_line": 79.5, "_note": "Steady drop -8.0 yards"}
+      ],
+      "actual_result": {
+        "receiving_yards": 68,
+        "went_under": true,
+        "final_line": 79.5
+      }
+    },
+    {
+      "_comment": "Scenario 7: CeeDee Lamb - Sudden late drop (receiving)",
+      "event_id": "mock_game_007",
+      "game_commence_time": "2025-01-05T21:30:00Z",
+      "home_team": "Dallas Cowboys",
+      "away_team": "Washington Commanders",
+      "player_name": "CeeDee Lamb",
+      "player_slug": "ceedee-lamb",
+      "prop_type": "receiving_yards",
+      "snapshots_timeline": [
+        {"snapshot_time": "2025-01-05T20:30:00Z", "hours_before_kickoff": 1.0, "consensus_line": 92.5, "draftkings_line": 92.0, "fanduel_line": 93.0, "betmgm_line": 92.5},
+        {"snapshot_time": "2025-01-05T20:35:00Z", "hours_before_kickoff": 0.92, "consensus_line": 92.5, "draftkings_line": 92.0, "fanduel_line": 93.0, "betmgm_line": 92.5},
+        {"snapshot_time": "2025-01-05T20:40:00Z", "hours_before_kickoff": 0.83, "consensus_line": 92.0, "draftkings_line": 91.5, "fanduel_line": 92.5, "betmgm_line": 92.0},
+        {"snapshot_time": "2025-01-05T20:45:00Z", "hours_before_kickoff": 0.75, "consensus_line": 92.0, "draftkings_line": 91.5, "fanduel_line": 92.5, "betmgm_line": 92.0},
+        {"snapshot_time": "2025-01-05T20:50:00Z", "hours_before_kickoff": 0.67, "consensus_line": 91.5, "draftkings_line": 91.0, "fanduel_line": 92.0, "betmgm_line": 91.5},
+        {"snapshot_time": "2025-01-05T20:55:00Z", "hours_before_kickoff": 0.58, "consensus_line": 91.5, "draftkings_line": 91.0, "fanduel_line": 92.0, "betmgm_line": 91.5},
+        {"snapshot_time": "2025-01-05T21:00:00Z", "hours_before_kickoff": 0.5, "consensus_line": 91.0, "draftkings_line": 90.5, "fanduel_line": 91.5, "betmgm_line": 91.0},
+        {"snapshot_time": "2025-01-05T21:05:00Z", "hours_before_kickoff": 0.42, "consensus_line": 91.0, "draftkings_line": 90.5, "fanduel_line": 91.5, "betmgm_line": 91.0},
+        {"snapshot_time": "2025-01-05T21:10:00Z", "hours_before_kickoff": 0.33, "consensus_line": 90.5, "draftkings_line": 90.0, "fanduel_line": 91.0, "betmgm_line": 90.5},
+        {"snapshot_time": "2025-01-05T21:15:00Z", "hours_before_kickoff": 0.25, "consensus_line": 88.0, "draftkings_line": 87.5, "fanduel_line": 88.5, "betmgm_line": 88.0, "_note": "Sudden drop"},
+        {"snapshot_time": "2025-01-05T21:20:00Z", "hours_before_kickoff": 0.17, "consensus_line": 86.5, "draftkings_line": 86.0, "fanduel_line": 87.0, "betmgm_line": 86.5},
+        {"snapshot_time": "2025-01-05T21:25:00Z", "hours_before_kickoff": 0.08, "consensus_line": 85.5, "draftkings_line": 85.0, "fanduel_line": 86.0, "betmgm_line": 85.5},
+        {"snapshot_time": "2025-01-05T21:30:00Z", "hours_before_kickoff": 0.0, "consensus_line": 85.5, "draftkings_line": 85.0, "fanduel_line": 86.0, "betmgm_line": 85.5, "_note": "Sharp drop in last 15 minutes"}
+      ],
+      "actual_result": {
+        "receiving_yards": 81,
+        "went_under": true,
+        "final_line": 85.5
+      }
+    }
+  ]
+}

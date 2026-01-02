@@ -31,21 +31,30 @@ class ScraperScheduler:
         self.scheduler = AsyncIOScheduler()
         self._is_running = False
     
-    async def scrape_all_props(self):
+    async def scrape_all_props(self, week: Optional[int] = None, hours_before_kickoff: Optional[float] = None):
         """
         Main scraping job that collects prop data for all players.
+        
+        Args:
+            week: NFL week number (1-18), None for current week
+            hours_before_kickoff: Hours before kickoff threshold, None for default
         """
-        print(f"[{datetime.now()}] Starting prop scraping job...")
+        week_str = f"Week {week}" if week else "current week"
+        hours = hours_before_kickoff or (self.settings.hours_before_kickoff_threshold + 9)
+        
+        print(f"[{datetime.now()}] Starting prop scraping job for {week_str} (within {hours}h of kickoff)...")
+        
+        snapshots_saved = False
         
         try:
             async with PlayerDiscovery() as discovery:
-                # Get players for current week
-                players = await discovery.get_weekly_players()
+                # Get players for specified week
+                players = await discovery.get_weekly_players(week=week, use_cache=False)
                 
                 # Filter to players whose games are starting soon
                 players_to_scrape = discovery.get_players_for_scraping(
                     players,
-                    hours_before_kickoff=self.settings.hours_before_kickoff_threshold + 9,
+                    hours_before_kickoff=hours,
                 )
                 
                 print(f"  Found {len(players_to_scrape)} players to scrape")
@@ -63,12 +72,26 @@ class ScraperScheduler:
                 
                 if snapshots:
                     saved = collector.save_snapshots(snapshots)
-                    print(f"  Saved {saved} prop snapshots")
+                    print(f"  ✓ Saved {saved} prop snapshots")
+                    snapshots_saved = True
                 else:
                     print("  No new snapshots to save")
         
         except Exception as e:
-            print(f"  Error in scraping job: {e}")
+            print(f"  ✗ Error in scraping job: {e}")
+        
+        # Broadcast update to WebSocket clients if we saved new data
+        if snapshots_saved:
+            try:
+                # Import here to avoid circular dependency
+                from src.api.main import broadcast_dashboard_update
+                await broadcast_dashboard_update()
+            except Exception as e:
+                print(f"  ⚠ Failed to broadcast WebSocket update: {e}")
+    
+    async def scrape_week18(self):
+        """Wrapper for Week 18 continuous scraping job."""
+        await self.scrape_all_props(week=18, hours_before_kickoff=70.0)
     
     async def collect_game_stats(self):
         """
@@ -102,6 +125,15 @@ class ScraperScheduler:
     def setup_jobs(self):
         """Configure all scheduled jobs."""
         interval_minutes = self.settings.scrape_interval_minutes
+        
+        # Week 18 continuous scraping: Every 1 minute, 24/7
+        # Runs with 70-hour window to catch upcoming games
+        self.scheduler.add_job(
+            self.scrape_week18,
+            IntervalTrigger(minutes=1),
+            id='week18_continuous_scrape',
+            replace_existing=True,
+        )
         
         # Sunday scraping: 6am-11:59pm EST (all games)
         self.scheduler.add_job(
@@ -168,9 +200,10 @@ class ScraperScheduler:
             replace_existing=True,
         )
         
-        print("Scheduled jobs configured:")
+        print("\n📅 Scheduled jobs configured:")
         for job in self.scheduler.get_jobs():
-            print(f"  - {job.id}: {job.trigger}")
+            print(f"  ✓ {job.id}: {job.trigger}")
+        print()
     
     def start(self):
         """Start the scheduler."""

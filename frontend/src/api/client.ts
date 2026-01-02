@@ -7,6 +7,64 @@ const api = axios.create({
   },
 })
 
+// WebSocket connection management
+let dashboardWebSocket: WebSocket | null = null
+
+export const connectDashboardWebSocket = (
+  onMessage: (data: { items: PropDashboardItem[]; total: number }) => void,
+  onError?: (error: Event) => void,
+  onClose?: () => void
+): WebSocket => {
+  // Close existing connection if any
+  if (dashboardWebSocket) {
+    dashboardWebSocket.close()
+  }
+
+  // Determine WebSocket URL
+  // In development, Vite proxy handles /ws -> ws://localhost:8000
+  // In production, use same host as the page
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  const host = window.location.host
+  const wsUrl = `${protocol}//${host}/ws/dashboard`
+
+  console.log('Connecting to WebSocket:', wsUrl)
+  dashboardWebSocket = new WebSocket(wsUrl)
+
+  dashboardWebSocket.onopen = () => {
+    console.log('✓ WebSocket connected')
+  }
+
+  dashboardWebSocket.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data)
+      console.log('✅ Successfully parsed WebSocket data')
+      onMessage(data)
+    } catch (error) {
+      console.error('❌ Failed to parse WebSocket message:', error)
+      console.error('Raw data:', event.data)
+    }
+  }
+
+  dashboardWebSocket.onerror = (error) => {
+    console.error('WebSocket error:', error)
+    if (onError) onError(error)
+  }
+
+  dashboardWebSocket.onclose = () => {
+    console.log('WebSocket disconnected')
+    if (onClose) onClose()
+  }
+
+  return dashboardWebSocket
+}
+
+export const disconnectDashboardWebSocket = () => {
+  if (dashboardWebSocket) {
+    dashboardWebSocket.close()
+    dashboardWebSocket = null
+  }
+}
+
 // Types
 export interface ThesisSummary {
   thesis: string
@@ -77,10 +135,44 @@ export interface PropSnapshot {
   draftkings_line: number | null
   fanduel_line: number | null
   betmgm_line: number | null
+  over_odds: number | null
+  under_odds: number | null
   snapshot_time: string
   game_commence_time: string
   hours_before_kickoff: number | null
   source: string
+}
+
+export interface LineChangeData {
+  minutes: number
+  absolute: number | null
+  percent: number | null
+  old_line: number | null
+  old_over_odds: number | null
+  old_under_odds: number | null
+  new_over_odds: number | null
+  new_under_odds: number | null
+  label?: string
+}
+
+export interface PropDashboardItem {
+  player_name: string
+  prop_type: string
+  event_id: string
+  game_commence_time: string
+  current_line: number | null
+  current_over_odds: number | null
+  current_under_odds: number | null
+  snapshot_time: string
+  m5: LineChangeData
+  m10: LineChangeData
+  m15: LineChangeData
+  m30: LineChangeData
+  m45: LineChangeData
+  m60: LineChangeData
+  h12: LineChangeData
+  h24: LineChangeData
+  since_open: LineChangeData
 }
 
 // API functions
@@ -139,6 +231,14 @@ export const getPropSnapshots = async (params?: {
   page_size?: number
 }): Promise<{ items: PropSnapshot[]; total: number }> => {
   const { data } = await api.get('/props/snapshots', { params })
+  return data
+}
+
+export const getDashboardView = async (params?: {
+  prop_type?: string
+  hours_back?: number
+}): Promise<{ items: PropDashboardItem[]; total: number }> => {
+  const { data } = await api.get('/props/dashboard', { params })
   return data
 }
 

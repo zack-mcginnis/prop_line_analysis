@@ -53,14 +53,27 @@ class PlayerDiscovery:
     
     Uses ESPN API to get weekly schedule and team rosters to identify
     skill position players who are likely to have props.
+    
+    Also fetches BettingPros event IDs and maps them to ESPN events.
     """
     
     ESPN_API_BASE = "https://site.api.espn.com/apis/site/v2/sports/football/nfl"
     ESPN_SCOREBOARD = f"{ESPN_API_BASE}/scoreboard"
     ESPN_TEAMS = f"{ESPN_API_BASE}/teams"
     
+    BETTINGPROS_API_BASE = "https://api.bettingpros.com/v3"
+    BETTINGPROS_API_KEY = "CHi8Hy5CEE4khd46XNYL23dCFX96oUdw6qOt1Dnh"
+    
     # Positions that typically have rushing/receiving props
     SKILL_POSITIONS = {"RB", "WR", "TE", "QB", "FB"}
+    
+    # Team abbreviation mapping (normalize different abbreviations)
+    TEAM_ABBR_MAP = {
+        "WSH": "WAS",  # Washington: ESPN uses WSH, BettingPros uses WAS
+        "JAX": "JAC",  # Jacksonville: some use JAX, BettingPros uses JAC
+        "LAR": "LA",   # LA Rams: some variations
+        # Add more mappings as discovered
+    }
     
     def __init__(self):
         self.settings = get_settings()
@@ -105,11 +118,14 @@ class PlayerDiscovery:
         params = {}
         if week:
             params["week"] = week
+
+        print(f"Getting weekly schedule for week {week}")
+        print(f"Params: {params}")
         
         response = await self.client.get(self.ESPN_SCOREBOARD, params=params)
         response.raise_for_status()
         data = response.json()
-        
+
         games = []
         for event in data.get("events", []):
             competition = event.get("competitions", [{}])[0]
@@ -155,6 +171,8 @@ class PlayerDiscovery:
                     "status": event.get("status", {}).get("type", {}).get("name"),
                 })
         
+        print(f"Games: {games}")
+        
         return games
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
@@ -190,15 +208,148 @@ class PlayerDiscovery:
         
         return players
     
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+    async def get_bettingpros_events(self, season: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Get NFL events from BettingPros API.
+        
+        Args:
+            season: Season string (e.g., "2024-2025"), or None for current
+            
+        Returns:
+            List of event dicts from BettingPros
+        """
+        url = f"{self.BETTINGPROS_API_BASE}/events"
+        headers = {
+            "Accept": "application/json",
+            "x-api-key": self.BETTINGPROS_API_KEY,
+            "Referer": "https://www.bettingpros.com/",
+        }
+        
+        params = {"sport": "NFL"}
+        if season:
+            params["season"] = season
+        
+        response = await self.client.get(url, headers=headers, params=params)
+        response.raise_for_status()
+        data = response.json()
+        
+        return data.get("events", [])
+    
+    def _normalize_team_abbr(self, abbr: str) -> str:
+        """Normalize team abbreviation for matching."""
+        return self.TEAM_ABBR_MAP.get(abbr, abbr)
+    
+    def _match_bettingpros_to_espn_event(
+        self,
+        bp_event: Dict[str, Any],
+        espn_games: List[Dict[str, Any]],
+    ) -> Optional[str]:
+        """
+        Match a BettingPros event to an ESPN game.
+        
+        Args:
+            bp_event: BettingPros event dict
+            espn_games: List of ESPN game dicts
+            
+        Returns:
+            ESPN event_id if match found, None otherwise
+        """
+        # Get BettingPros home/away teams (they're just strings like "TB", "CAR")
+        bp_home = bp_event.get("home")
+        bp_visitor = bp_event.get("visitor")
+        
+        if not bp_home or not bp_visitor:
+            return None
+        
+        # Normalize abbreviations
+        bp_home = self._normalize_team_abbr(bp_home)
+        bp_visitor = self._normalize_team_abbr(bp_visitor)
+        
+        # Get game time for additional matching
+        bp_scheduled = bp_event.get("scheduled")
+        bp_time = None
+        if bp_scheduled:
+            try:
+                bp_time = datetime.fromisoformat(bp_scheduled.replace("Z", "+00:00"))
+            except (ValueError, AttributeError):
+                pass
+        
+        # Try to find matching ESPN game
+        for espn_game in espn_games:
+            espn_home = self._normalize_team_abbr(
+                espn_game.get("home_team", {}).get("abbreviation", "")
+            )
+            espn_away = self._normalize_team_abbr(
+                espn_game.get("away_team", {}).get("abbreviation", "")
+            )
+            
+            # Match by teams
+            if espn_home == bp_home and espn_away == bp_visitor:
+                # If we have game times, verify they're close (within 1 hour)
+                if bp_time and espn_game.get("game_commence_time"):
+                    espn_time = espn_game["game_commence_time"]
+                    
+                    # Ensure both datetimes are timezone-aware
+                    if espn_time.tzinfo is None:
+                        espn_time = espn_time.replace(tzinfo=timezone.utc)
+                    if bp_time.tzinfo is None:
+                        bp_time = bp_time.replace(tzinfo=timezone.utc)
+                    
+                    time_diff = abs((bp_time - espn_time).total_seconds())
+                    
+                    # Times should be very close (within 1 hour = 3600 seconds)
+                    if time_diff > 3600:
+                        continue
+                
+                return espn_game.get("event_id")
+        
+        return None
+    
+    async def map_bettingpros_event_ids(
+        self,
+        espn_games: List[Dict[str, Any]],
+        season: Optional[str] = None,
+    ) -> Dict[str, str]:
+        """
+        Create mapping from ESPN event IDs to BettingPros event IDs.
+        
+        Args:
+            espn_games: List of ESPN game dicts
+            season: BettingPros season string (e.g., "2024-2025")
+            
+        Returns:
+            Dict mapping ESPN event_id -> BettingPros event_id
+        """
+        # Get BettingPros events
+        bp_events = await self.get_bettingpros_events(season)
+        
+        mapping = {}
+        
+        for bp_event in bp_events:
+            bp_id = bp_event.get("id")
+            if not bp_id:
+                continue
+            
+            # Try to match to ESPN event
+            espn_id = self._match_bettingpros_to_espn_event(bp_event, espn_games)
+            
+            if espn_id:
+                mapping[espn_id] = str(bp_id)
+        
+        return mapping
+    
     async def get_players_for_game(
         self,
         game: Dict[str, Any],
+        bettingpros_event_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Get skill position players for both teams in a game.
         
         Args:
             game: Game dict from get_weekly_schedule
+            bettingpros_event_id: BettingPros event ID for this game (optional)
             
         Returns:
             List of player dicts with game context
@@ -216,19 +367,25 @@ class PlayerDiscovery:
                 roster = await self.get_team_roster(team_id)
                 
                 for player in roster:
-                    players.append({
+                    player_dict = {
                         "name": player["name"],
                         "position": player["position"],
                         "team": team.get("name"),
                         "team_abbr": team.get("abbreviation"),
-                        "event_id": game.get("event_id"),
+                        "event_id": game.get("event_id"),  # ESPN event ID
                         "game_commence_time": game.get("game_commence_time"),
                         "is_home": team_key == "home_team",
                         "opponent": game.get(
                             "away_team" if team_key == "home_team" else "home_team",
                             {}
                         ).get("name"),
-                    })
+                    }
+                    
+                    # Add BettingPros event ID if available
+                    if bettingpros_event_id:
+                        player_dict["bettingpros_event_id"] = bettingpros_event_id
+                    
+                    players.append(player_dict)
             except Exception as e:
                 print(f"Error getting roster for team {team_id}: {e}")
         
@@ -238,6 +395,8 @@ class PlayerDiscovery:
         self,
         week: Optional[int] = None,
         use_cache: bool = True,
+        include_bettingpros_ids: bool = True,
+        season: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Get all skill position players for the week's games.
@@ -245,16 +404,28 @@ class PlayerDiscovery:
         Args:
             week: NFL week number (or None for current)
             use_cache: Whether to use cached results
+            include_bettingpros_ids: Whether to fetch and include BettingPros event IDs
+            season: BettingPros season string (e.g., "2024-2025") for event mapping
             
         Returns:
-            List of player dicts with game context
+            List of player dicts with game context (includes bettingpros_event_id if available)
         """
-        cache_key = f"week_{week or 'current'}"
+        cache_key = f"week_{week or 'current'}_bp_{include_bettingpros_ids}"
         
         if use_cache and self._is_cache_valid() and cache_key in self._player_cache:
             return self._player_cache[cache_key]
         
         games = await self.get_weekly_schedule(week)
+        
+        # Get BettingPros event ID mapping if requested
+        event_id_map = {}
+        if include_bettingpros_ids:
+            try:
+                event_id_map = await self.map_bettingpros_event_ids(games, season)
+                print(f"Mapped {len(event_id_map)} ESPN events to BettingPros events")
+            except Exception as e:
+                print(f"Warning: Failed to fetch BettingPros event mapping: {e}")
+        
         all_players = []
         
         for game in games:
@@ -262,7 +433,11 @@ class PlayerDiscovery:
             if game.get("status") == "STATUS_FINAL":
                 continue
             
-            players = await self.get_players_for_game(game)
+            # Get BettingPros event ID for this game
+            espn_event_id = game.get("event_id")
+            bp_event_id = event_id_map.get(espn_event_id) if espn_event_id else None
+            
+            players = await self.get_players_for_game(game, bp_event_id)
             all_players.extend(players)
             
             # Small delay between roster requests

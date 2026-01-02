@@ -1,8 +1,9 @@
 """Props endpoints for retrieving prop line data."""
 
-from datetime import datetime, timezone
-from typing import Optional, List
+from datetime import datetime, timezone, timedelta
+from typing import Optional, List, Dict
 from decimal import Decimal
+from collections import defaultdict
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -24,6 +25,8 @@ class PropSnapshotResponse(BaseModel):
     draftkings_line: Optional[float]
     fanduel_line: Optional[float]
     betmgm_line: Optional[float]
+    over_odds: Optional[int]
+    under_odds: Optional[int]
     snapshot_time: datetime
     game_commence_time: datetime
     hours_before_kickoff: Optional[float]
@@ -40,6 +43,46 @@ class PropTimelineResponse(BaseModel):
     event_id: str
     game_commence_time: datetime
     snapshots: List[dict]
+
+
+class LineChangeData(BaseModel):
+    """Line change data for a time window."""
+    minutes: int
+    absolute: Optional[float]
+    percent: Optional[float]
+    old_line: Optional[float]
+    old_over_odds: Optional[int]
+    old_under_odds: Optional[int]
+    new_over_odds: Optional[int]
+    new_under_odds: Optional[int]
+    label: Optional[str] = None
+
+
+class PropDashboardItem(BaseModel):
+    """Dashboard item with current line and all time-based movements."""
+    player_name: str
+    prop_type: str
+    event_id: str
+    game_commence_time: datetime
+    current_line: Optional[float]
+    current_over_odds: Optional[int]
+    current_under_odds: Optional[int]
+    snapshot_time: datetime
+    m5: LineChangeData
+    m10: LineChangeData
+    m15: LineChangeData
+    m30: LineChangeData
+    m45: LineChangeData
+    m60: LineChangeData
+    h12: LineChangeData
+    h24: LineChangeData
+    since_open: LineChangeData
+
+
+class DashboardResponse(BaseModel):
+    """Response model for dashboard view."""
+    items: List[PropDashboardItem]
+    total: int
 
 
 class PaginatedResponse(BaseModel):
@@ -59,7 +102,7 @@ async def get_prop_snapshots(
     start_date: Optional[datetime] = Query(None, description="Filter by start date"),
     end_date: Optional[datetime] = Query(None, description="Filter by end date"),
     page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(50, ge=1, le=100, description="Items per page"),
+    page_size: int = Query(50, ge=1, le=500, description="Items per page"),
 ):
     """Get paginated list of prop line snapshots."""
     session = get_session()
@@ -105,6 +148,8 @@ async def get_prop_snapshots(
                 draftkings_line=float(s.draftkings_line) if s.draftkings_line else None,
                 fanduel_line=float(s.fanduel_line) if s.fanduel_line else None,
                 betmgm_line=float(s.betmgm_line) if s.betmgm_line else None,
+                over_odds=s.over_odds,
+                under_odds=s.under_odds,
                 snapshot_time=s.snapshot_time,
                 game_commence_time=s.game_commence_time,
                 hours_before_kickoff=float(s.hours_before_kickoff) if s.hours_before_kickoff else None,
@@ -235,4 +280,181 @@ async def get_events(
         }
     finally:
         session.close()
+
+
+async def get_dashboard_data(
+    prop_type: Optional[str] = None,
+    hours_back: int = 48,
+) -> dict:
+    """
+    Get dashboard data with all calculations.
+    Used by both HTTP endpoint and WebSocket broadcasts.
+    
+    Returns:
+        Dictionary matching DashboardResponse schema
+    """
+    session = get_session()
+    try:
+        # Get all snapshots from the last N hours
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours_back)
+        
+        query = session.query(PropLineSnapshot).filter(
+            PropLineSnapshot.snapshot_time >= cutoff_time
+        )
+        
+        if prop_type:
+            try:
+                pt = PropType(prop_type)
+                query = query.filter(PropLineSnapshot.prop_type == pt)
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"Invalid prop_type: {prop_type}")
+        
+        query = query.order_by(PropLineSnapshot.snapshot_time)
+        all_snapshots = query.all()
+        
+        # Group snapshots by (player_name, prop_type, event_id)
+        grouped: Dict[tuple, List[PropLineSnapshot]] = defaultdict(list)
+        for snap in all_snapshots:
+            key = (snap.player_name, snap.prop_type, snap.event_id)
+            grouped[key].append(snap)
+        
+        # Calculate movements for each player
+        dashboard_items = []
+        for (player_name, prop_type_enum, event_id), snapshots in grouped.items():
+            if not snapshots:
+                continue
+            
+            # Sort by time (should already be sorted)
+            snapshots.sort(key=lambda s: s.snapshot_time)
+            
+            # Get the most recent snapshot
+            latest = snapshots[-1]
+            if not latest.consensus_line:
+                continue
+            
+            current_line = float(latest.consensus_line)
+            current_time = latest.snapshot_time
+            
+            # Calculate line changes for different time windows
+            def calculate_change(minutes: int, label: Optional[str] = None) -> LineChangeData:
+                if minutes == 0:  # "Since Open" - use first snapshot
+                    first = snapshots[0]
+                    if not first.consensus_line:
+                        return LineChangeData(
+                            minutes=0,
+                            absolute=None,
+                            percent=None,
+                            old_line=None,
+                            old_over_odds=None,
+                            old_under_odds=None,
+                            new_over_odds=None,
+                            new_under_odds=None,
+                            label=label
+                        )
+                    
+                    old_line = float(first.consensus_line)
+                    absolute = current_line - old_line
+                    percent = ((current_line - old_line) / old_line) * 100 if old_line != 0 else 0
+                    
+                    return LineChangeData(
+                        minutes=0,
+                        absolute=absolute,
+                        percent=percent,
+                        old_line=old_line,
+                        old_over_odds=first.over_odds,
+                        old_under_odds=first.under_odds,
+                        new_over_odds=latest.over_odds,
+                        new_under_odds=latest.under_odds,
+                        label=label
+                    )
+                
+                # Find snapshot closest to target time
+                target_time = current_time - timedelta(minutes=minutes)
+                closest_snap = None
+                min_diff = timedelta.max
+                
+                for snap in snapshots[:-1]:  # Exclude the latest
+                    if snap.snapshot_time > current_time:
+                        continue
+                    diff = abs(snap.snapshot_time - target_time)
+                    if diff < min_diff:
+                        min_diff = diff
+                        closest_snap = snap
+                
+                if not closest_snap or not closest_snap.consensus_line:
+                    return LineChangeData(
+                        minutes=minutes,
+                        absolute=None,
+                        percent=None,
+                        old_line=None,
+                        old_over_odds=None,
+                        old_under_odds=None,
+                        new_over_odds=None,
+                        new_under_odds=None,
+                        label=label
+                    )
+                
+                old_line = float(closest_snap.consensus_line)
+                absolute = current_line - old_line
+                percent = ((current_line - old_line) / old_line) * 100 if old_line != 0 else 0
+                
+                return LineChangeData(
+                    minutes=minutes,
+                    absolute=absolute,
+                    percent=percent,
+                    old_line=old_line,
+                    old_over_odds=closest_snap.over_odds,
+                    old_under_odds=closest_snap.under_odds,
+                    new_over_odds=latest.over_odds,
+                    new_under_odds=latest.under_odds,
+                    label=label
+                )
+            
+            # Create dashboard item with all calculated movements
+            item = PropDashboardItem(
+                player_name=player_name,
+                prop_type=prop_type_enum.value,
+                event_id=event_id,
+                game_commence_time=latest.game_commence_time,
+                current_line=current_line,
+                current_over_odds=latest.over_odds,
+                current_under_odds=latest.under_odds,
+                snapshot_time=latest.snapshot_time,
+                m5=calculate_change(5),
+                m10=calculate_change(10),
+                m15=calculate_change(15),
+                m30=calculate_change(30),
+                m45=calculate_change(45),
+                m60=calculate_change(60),
+                h12=calculate_change(12 * 60, "Last 12h"),
+                h24=calculate_change(24 * 60, "Last 24h"),
+                since_open=calculate_change(0, "Since Open")
+            )
+            
+            dashboard_items.append(item)
+        
+        # Return as dict (JSON-serializable)
+        # Use mode='json' to ensure datetime objects are serialized as ISO strings
+        result = {
+            "items": [item.model_dump(mode='json') for item in dashboard_items],
+            "total": len(dashboard_items)
+        }
+        
+        return result
+    
+    finally:
+        session.close()
+
+
+@router.get("/dashboard", response_model=DashboardResponse)
+async def get_dashboard_view(
+    prop_type: Optional[str] = Query(None, description="Filter by prop type"),
+    hours_back: int = Query(48, description="Look back this many hours for snapshots"),
+):
+    """
+    Get dashboard view with one item per player containing all time-based line movements.
+    This endpoint does all calculations on the backend and returns ready-to-display data.
+    """
+    data = await get_dashboard_data(prop_type=prop_type, hours_back=hours_back)
+    return data
 

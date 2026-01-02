@@ -52,8 +52,10 @@ This project collects and analyzes prop line data to validate or disprove this h
 ### Prerequisites
 
 - Python 3.11+
+- [uv](https://docs.astral.sh/uv/) (Python package manager)
 - Docker and Docker Compose
 - Node.js 18+
+- [Yarn](https://yarnpkg.com/) (JavaScript package manager)
 - The Odds API key (paid plan for historical data)
 
 ### 1. Clone and Setup
@@ -61,12 +63,8 @@ This project collects and analyzes prop line data to validate or disprove this h
 ```bash
 cd prop_line_analysis
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
+# Install dependencies with uv (creates .venv automatically)
+uv sync
 ```
 
 ### 2. Configure Environment
@@ -90,40 +88,132 @@ docker-compose up -d
 
 ```bash
 # Run migrations
-alembic upgrade head
+uv run alembic upgrade head
 ```
 
 ### 5. Start Backend
 
 ```bash
-uvicorn src.api.main:app --reload
+uv run uvicorn src.api.main:app --reload
 ```
 
 ### 6. Start Frontend
 
 ```bash
 cd frontend
-npm install
-npm run dev
+yarn install
+yarn dev
 ```
 
-Visit http://localhost:3000 to view the dashboard.
+Visit http://localhost:5173 to view the line movement dashboard.
+
+The dashboard shows:
+- Current prop lines for all active players
+- Line changes over 6 time windows (5, 10, 15, 30, 45, 60 minutes)
+- Color-coded drops (red) and increases (green)
+- Sortable columns to find sharpest movements
+- Auto-refresh every 30 seconds
+
+See `FRONTEND_DASHBOARD_GUIDE.md` for detailed usage.
 
 ## Usage
 
-### Collecting Historical Data
+### Collecting Live Player Props (Recommended)
 
-```python
-from src.collectors.odds_api import OddsAPICollector
-from datetime import datetime, timezone
+**Use the BettingPros scraper** to collect live player prop data. This is free and works with your current setup:
 
-async with OddsAPICollector() as collector:
-    snapshots = await collector.collect_week_props(
-        week_start=datetime(2024, 12, 1, tzinfo=timezone.utc),
-        week_end=datetime(2024, 12, 8, tzinfo=timezone.utc),
-    )
-    collector.save_snapshots(snapshots)
+```bash
+# Test the scraper (dry run)
+uv run python scripts/run_scraper.py --dry-run
+
+# Scrape all players in upcoming games
+uv run python scripts/run_scraper.py
+
+# Scrape specific players
+uv run python scripts/run_scraper.py --players "Saquon Barkley" "Derrick Henry"
+
+# Scrape only rushing yards
+uv run python scripts/run_scraper.py --prop-type rushing
+
+# Scrape only receiving yards
+uv run python scripts/run_scraper.py --prop-type receiving
+
+# Increase time window to 24 hours before kickoff
+uv run python scripts/run_scraper.py --hours-before-kickoff 24
 ```
+
+**⚠️ Important:** BettingPros only posts prop data 24-48 hours before games. For testing before props are available, use mock data (see below).
+
+**Automated Collection:** The scheduler automatically runs the scraper every 5 minutes on game days when you start the backend:
+
+```bash
+uv run uvicorn src.api.main:app --reload
+```
+
+### Testing with Mock Data
+
+For testing and development before live props are available, load realistic mock data:
+
+```bash
+# Load mock data into database
+uv run python scripts/load_mock_data.py
+
+# Clear and reload
+uv run python scripts/load_mock_data.py --clear
+
+# Preview without saving
+uv run python scripts/load_mock_data.py --dry-run
+```
+
+**Mock data includes:**
+- 7 players across 7 games
+- 18 prop line snapshots with realistic values
+- 5 significant late line drops (tests your thesis)
+- Various scenarios: stable lines, early drops, late drops, line increases
+- Both rushing and receiving yards props
+
+After loading mock data, you can:
+- Test API endpoints: `curl http://localhost:8000/api/props/snapshots`
+- View line movements: `curl http://localhost:8000/api/movements/`
+- Test the dashboard
+- Verify analysis logic
+
+### Alternative: The Odds API (Optional)
+
+If you upgrade to a higher-tier subscription with player props access:
+
+<details>
+<summary>Click to expand The Odds API usage</summary>
+
+#### Check API Access
+
+```bash
+# Verify what your API subscription includes
+uv run python scripts/check_available_markets.py
+```
+
+#### Live Odds (Requires Pro+ plan)
+
+```bash
+uv run python scripts/fetch_live_odds.py --limit 3 --dry-run
+```
+
+#### Historical Data (Requires Historical plan)
+
+```bash
+# Fetch data for a specific week
+uv run python scripts/fetch_historical_data.py --start 2024-12-17 --end 2024-12-23
+
+# Fetch data for a single day
+uv run python scripts/fetch_historical_data.py --date 2024-12-20
+
+# Dry run (don't save to database)
+uv run python scripts/fetch_historical_data.py --date 2024-12-20 --dry-run
+```
+
+See `API_DATA_SOURCES.md` for detailed information about subscription tiers and costs.
+
+</details>
 
 ### Running Analysis
 
@@ -150,7 +240,8 @@ print(report)
 ```
 prop_line_movement_analysis/
 ├── docker-compose.yml      # PostgreSQL + Redis
-├── requirements.txt        # Python dependencies
+├── pyproject.toml          # Python dependencies (uv)
+├── requirements.txt        # Python dependencies (pip fallback)
 ├── alembic/               # Database migrations
 ├── src/
 │   ├── collectors/
