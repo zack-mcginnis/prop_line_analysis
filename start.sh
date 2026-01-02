@@ -1,9 +1,16 @@
 #!/bin/sh
 set -e
 
+# Enable verbose mode for debugging
+set -x
+
 echo "=========================================="
 echo "Starting Prop Line Analysis API"
 echo "=========================================="
+echo "DEBUG: Script is running"
+echo "DEBUG: Current directory: $(pwd)"
+echo "DEBUG: Files present:"
+ls -la
 
 # Check if DATABASE_URL is set
 if [ -z "$DATABASE_URL" ]; then
