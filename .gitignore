@@ -1,3 +1,340 @@
+# =============================================================================
+# Environment Variables
+# =============================================================================
 .env
+.env.local
+.env.*.local
 !.env.example
-frontend/node_modules
+
+# =============================================================================
+# Python
+# =============================================================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+.pyenv/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff (if applicable)
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff (if applicable)
+instance/
+.webassets-cache
+
+# Scrapy stuff (if applicable)
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# =============================================================================
+# Node.js / JavaScript / TypeScript
+# =============================================================================
+# Dependencies
+node_modules/
+jspm_packages/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# Testing
+coverage/
+
+# Production
+build/
+dist/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+.DS_Store?
+
+# Misc
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.vuepress/dist
+.serverless/
+.fusebox/
+.dynamodb/
+.tern-port
+.vscode-test
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# =============================================================================
+# Database
+# =============================================================================
+*.db
+*.sqlite
+*.sqlite3
+postgres_data/
+redis_data/
+
+# PostgreSQL
+*.sql.gz
+*.dump
+
+# =============================================================================
+# Docker
+# =============================================================================
+# Don't ignore Dockerfile or docker-compose.yml
+# But ignore docker volumes
+docker-compose.override.yml
+.docker/
+
+# =============================================================================
+# IDEs and Editors
+# =============================================================================
+# VSCode
+.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# JetBrains IDEs (PyCharm, WebStorm, IntelliJ, etc.)
+.idea/
+*.iml
+*.ipr
+*.iws
+.idea_modules/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*.swn
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+
+# =============================================================================
+# Operating System
+# =============================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+.directory
+.Trash-*
+.nfs*
+
+# =============================================================================
+# Logs and Temporary Files
+# =============================================================================
+*.log
+logs/
+*.tmp
+*.temp
+tmp/
+temp/
+
+# =============================================================================
+# Project Specific
+# =============================================================================
+# Mock data (if you want to exclude it)
+# mock_data/
+
+# Scripts output
+scripts/output/
+
+# Alembic
+# Don't ignore alembic/ directory itself, but can ignore specific files if needed
+# alembic/versions/*.pyc
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Compressed files (unless needed)
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# =============================================================================
+# Security
+# =============================================================================
+# Private keys
+*.pem
+*.key
+*.cert
+secrets/
+.secrets/
+
+# =============================================================================
+# Build Tools
+# =============================================================================
+# uv (Python package manager)
+.uv/
+# Note: uv.lock should be committed for reproducible builds
+
+# pip
+pip-log.txt
+pip-delete-this-directory.txt
+
+# =============================================================================
+# Other
+# =============================================================================
+# Ignore Railway CLI files (if any)
+.railway/
+
+# Ignore any local configuration overrides
+*.local
+local/
+
+# Thumbnails
+*.jpg.cache
+*.png.cache
