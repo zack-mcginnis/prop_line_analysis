@@ -53,7 +53,7 @@ EXPOSE 8000
 # Note: Railway has its own healthcheck system, so we don't need a Docker HEALTHCHECK
 # The Docker HEALTHCHECK uses hardcoded port which conflicts with Railway's dynamic PORT
 
-# Run startup script that handles migrations and starts the server
-# Use sh explicitly to avoid any bash-specific issues
-CMD ["/bin/sh", "./start.sh"]
+# Temporary: Skip start.sh to test if the issue is the script
+# Run migrations and start uvicorn directly
+CMD ["sh", "-c", "echo 'Container started!' && alembic upgrade head && uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
 
