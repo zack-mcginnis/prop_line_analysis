@@ -44,12 +44,11 @@ COPY start.sh .
 # Make startup script executable
 RUN chmod +x start.sh
 
-# Create non-root user for security
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
-USER appuser
-
 # Expose port (Railway will override with PORT env var)
 EXPOSE 8000
+
+# Note: Running as root for now to debug Railway deployment issues
+# TODO: Add non-root user back after deployment works
 
 # Note: Railway has its own healthcheck system, so we don't need a Docker HEALTHCHECK
 # The Docker HEALTHCHECK uses hardcoded port which conflicts with Railway's dynamic PORT
