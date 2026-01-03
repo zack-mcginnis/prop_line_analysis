@@ -44,7 +44,7 @@ export default function Movements() {
           </p>
         </div>
         <button
-          onClick={() => detectMutation.mutate()}
+          onClick={() => detectMutation.mutate({})}
           disabled={detectMutation.isPending}
           className="btn btn-primary"
         >

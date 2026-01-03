@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, useMemo, useEffect } from 'react'
-import { getDashboardView, PropDashboardItem, LineChangeData, connectDashboardWebSocket, disconnectDashboardWebSocket } from '../api/client'
+import { getDashboardView, LineChangeData, connectDashboardWebSocket, disconnectDashboardWebSocket } from '../api/client'
 
 type SortField = 'player' | 'current' | 'm5' | 'm10' | 'm15' | 'm30' | 'm45' | 'm60' | 'h12' | 'h24' | 'sinceOpen'
 type SortDirection = 'asc' | 'desc'
@@ -29,7 +29,7 @@ export default function Dashboard() {
 
   // Establish WebSocket connection for real-time updates
   useEffect(() => {
-    const ws = connectDashboardWebSocket(
+    connectDashboardWebSocket(
       (wsData) => {
         console.log('📨 Received WebSocket update:', wsData)
         console.log(`📊 Total items: ${wsData.total}`)
