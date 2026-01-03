@@ -8,5 +8,5 @@ cmds = ["yarn install --frozen-lockfile"]
 cmds = ["yarn build"]
 
 [start]
-cmd = "npx serve@latest dist --single --listen $PORT"
+cmd = "npx serve@latest dist --single --listen tcp://0.0.0.0:$PORT"
 
