@@ -4,6 +4,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict
 from decimal import Decimal
 from collections import defaultdict
+import time
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -13,6 +14,15 @@ from sqlalchemy.orm import Session
 from src.models.database import PropLineSnapshot, PropType, get_session
 
 router = APIRouter()
+
+# Cache for dashboard data
+_dashboard_cache = {
+    'data': None,
+    'timestamp': 0,
+    'prop_type': None,
+    'hours_back': None
+}
+CACHE_TTL_SECONDS = 30  # Cache for 30 seconds
 
 
 class PropSnapshotResponse(BaseModel):
@@ -305,13 +315,30 @@ async def get_dashboard_data(
     Returns:
         Dictionary with items containing sportsbook-specific data
     """
+    # Check cache first
+    current_time = time.time()
+    cache_key = f"{prop_type}_{hours_back}"
+    
+    if (_dashboard_cache['data'] is not None and 
+        _dashboard_cache['prop_type'] == prop_type and
+        _dashboard_cache['hours_back'] == hours_back and
+        (current_time - _dashboard_cache['timestamp']) < CACHE_TTL_SECONDS):
+        print(f"✓ Serving dashboard data from cache (age: {current_time - _dashboard_cache['timestamp']:.1f}s)")
+        return _dashboard_cache['data']
+    
+    print(f"⏱ Computing dashboard data (cache miss or expired)...")
+    start_time = time.time()
+    
     session = get_session()
     try:
         # Get all snapshots from the last N hours
+        # OPTIMIZATION: Only get snapshots for games that haven't started yet (plus 6 hours buffer)
         cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours_back)
+        future_game_cutoff = datetime.now(timezone.utc) - timedelta(hours=6)  # Include recently finished games
         
         query = session.query(PropLineSnapshot).filter(
-            PropLineSnapshot.snapshot_time >= cutoff_time
+            PropLineSnapshot.snapshot_time >= cutoff_time,
+            PropLineSnapshot.game_commence_time >= future_game_cutoff  # Only active/recent games
         )
         
         if prop_type:
@@ -323,6 +350,8 @@ async def get_dashboard_data(
         
         query = query.order_by(PropLineSnapshot.snapshot_time)
         all_snapshots = query.all()
+        
+        print(f"  → Loaded {len(all_snapshots)} snapshots from database")
         
         # Group snapshots by (player_name, prop_type, event_id)
         grouped: Dict[tuple, List[PropLineSnapshot]] = defaultdict(list)
@@ -378,25 +407,27 @@ async def get_dashboard_data(
                 timestamp_field = f"{book_name}_timestamp"
                 book_timestamp = getattr(latest, timestamp_field, None)
                 
+                # Pre-filter snapshots for this sportsbook (only those with data for this book)
+                book_snapshots = [s for s in snapshots if getattr(s, line_field) is not None]
+                
                 # Function to calculate line changes for this specific sportsbook
                 def calculate_change_for_book(minutes: int, label: Optional[str] = None) -> dict:
+                    if not book_snapshots:
+                        return {
+                            "minutes": minutes,
+                            "absolute": None,
+                            "percent": None,
+                            "old_line": None,
+                            "old_over_odds": None,
+                            "old_under_odds": None,
+                            "new_over_odds": None,
+                            "new_under_odds": None,
+                            "label": label
+                        }
+                    
                     if minutes == 0:  # "Since Open" - use first snapshot
-                        first = snapshots[0]
-                        first_line_value = getattr(first, line_field)
-                        if not first_line_value:
-                            return {
-                                "minutes": 0,
-                                "absolute": None,
-                                "percent": None,
-                                "old_line": None,
-                                "old_over_odds": None,
-                                "old_under_odds": None,
-                                "new_over_odds": None,
-                                "new_under_odds": None,
-                                "label": label
-                            }
-                        
-                        old_line = float(first_line_value)
+                        first = book_snapshots[0]
+                        old_line = float(getattr(first, line_field))
                         absolute = current_line - old_line
                         percent = ((current_line - old_line) / old_line) * 100 if old_line != 0 else 0
                         
@@ -413,20 +444,23 @@ async def get_dashboard_data(
                         }
                     
                     # Find snapshot closest to target time
+                    # OPTIMIZATION: Iterate backwards from end (snapshots are sorted by time)
                     target_time = current_time - timedelta(minutes=minutes)
                     closest_snap = None
                     min_diff = timedelta.max
                     
-                    for snap in snapshots[:-1]:  # Exclude the latest
+                    # Start from most recent and work backwards
+                    for snap in reversed(book_snapshots[:-1]):  # Exclude the latest
                         if snap.snapshot_time > current_time:
                             continue
-                        snap_line_value = getattr(snap, line_field)
-                        if not snap_line_value:
-                            continue
+                        
                         diff = abs(snap.snapshot_time - target_time)
                         if diff < min_diff:
                             min_diff = diff
                             closest_snap = snap
+                        elif snap.snapshot_time < target_time:
+                            # We've passed the target time, no need to keep searching
+                            break
                     
                     if not closest_snap:
                         return {
@@ -484,10 +518,31 @@ async def get_dashboard_data(
             "total": len(dashboard_items)
         }
         
+        # Update cache
+        _dashboard_cache['data'] = result
+        _dashboard_cache['timestamp'] = time.time()
+        _dashboard_cache['prop_type'] = prop_type
+        _dashboard_cache['hours_back'] = hours_back
+        
+        elapsed = time.time() - start_time
+        print(f"✓ Dashboard data computed in {elapsed:.2f}s ({len(dashboard_items)} items)")
+        
         return result
     
     finally:
         session.close()
+
+
+def invalidate_dashboard_cache():
+    """Invalidate the dashboard cache. Called when new data is scraped."""
+    global _dashboard_cache
+    _dashboard_cache = {
+        'data': None,
+        'timestamp': 0,
+        'prop_type': None,
+        'hours_back': None
+    }
+    print("✓ Dashboard cache invalidated")
 
 
 @router.get("/dashboard")
@@ -501,6 +556,8 @@ async def get_dashboard_view(
     draftkings, fanduel, etc.) with their respective line data and movements.
     
     This endpoint does all calculations on the backend and returns ready-to-display data.
+    
+    PERFORMANCE NOTE: Results are cached for 30 seconds to reduce database load.
     """
     data = await get_dashboard_data(prop_type=prop_type, hours_back=hours_back)
     return data

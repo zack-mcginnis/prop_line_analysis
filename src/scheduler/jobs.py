@@ -80,11 +80,17 @@ class ScraperScheduler:
         except Exception as e:
             print(f"  ✗ Error in scraping job: {e}")
         
-        # Broadcast update to WebSocket clients if we saved new data
+        # Invalidate cache and broadcast update to WebSocket clients if we saved new data
         if snapshots_saved:
             try:
                 # Import here to avoid circular dependency
+                from src.api.routes.props import invalidate_dashboard_cache
                 from src.api.main import broadcast_dashboard_update
+                
+                # Invalidate cache so next request gets fresh data
+                invalidate_dashboard_cache()
+                
+                # Broadcast to connected WebSocket clients
                 await broadcast_dashboard_update()
             except Exception as e:
                 print(f"  ⚠ Failed to broadcast WebSocket update: {e}")

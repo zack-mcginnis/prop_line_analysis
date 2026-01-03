@@ -45,7 +45,7 @@ fi
 # Run database migrations
 echo ""
 echo "Running database migrations..."
-if alembic upgrade head; then
+if uv run alembic upgrade head; then
     echo "✓ Migrations completed successfully"
 else
     echo "ERROR: Database migrations failed!"
@@ -62,5 +62,5 @@ echo "Starting uvicorn server..."
 echo "Listening on 0.0.0.0:$PORT"
 echo "=========================================="
 
-exec uvicorn src.api.main:app --host 0.0.0.0 --port $PORT
+exec uv run uvicorn src.api.main:app --host 0.0.0.0 --port $PORT
 
