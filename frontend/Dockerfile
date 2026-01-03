@@ -31,5 +31,6 @@ EXPOSE 3000
 
 # Serve the static files
 # Use shell form to allow PORT variable expansion
-CMD ["sh", "-c", "serve -s dist -p ${PORT:-3000}"]
+# -l 0.0.0.0 ensures Railway can reach the service
+CMD ["sh", "-c", "serve -s dist -l 0.0.0.0:${PORT:-3000}"]
 
