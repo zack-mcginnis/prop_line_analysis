@@ -154,8 +154,8 @@ export interface PropSnapshot {
   draftkings_line: number | null
   fanduel_line: number | null
   betmgm_line: number | null
-  over_odds: number | null
-  under_odds: number | null
+  consensus_over_odds: number | null
+  consensus_under_odds: number | null
   snapshot_time: string
   game_commence_time: string
   hours_before_kickoff: number | null
@@ -174,15 +174,10 @@ export interface LineChangeData {
   label?: string
 }
 
-export interface PropDashboardItem {
-  player_name: string
-  prop_type: string
-  event_id: string
-  game_commence_time: string
+export interface SportsbookData {
   current_line: number | null
   current_over_odds: number | null
   current_under_odds: number | null
-  snapshot_time: string
   m5: LineChangeData
   m10: LineChangeData
   m15: LineChangeData
@@ -192,6 +187,21 @@ export interface PropDashboardItem {
   h12: LineChangeData
   h24: LineChangeData
   since_open: LineChangeData
+}
+
+export interface PropDashboardItem {
+  player_name: string
+  prop_type: string
+  event_id: string
+  game_commence_time: string
+  snapshot_time: string
+  // Sportsbook-specific data
+  consensus?: SportsbookData
+  draftkings?: SportsbookData
+  fanduel?: SportsbookData
+  betmgm?: SportsbookData
+  caesars?: SportsbookData
+  pointsbet?: SportsbookData
 }
 
 // API functions

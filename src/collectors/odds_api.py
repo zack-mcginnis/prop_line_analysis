@@ -235,14 +235,14 @@ class OddsAPICollector:
                     consensus = sum(all_lines) / len(all_lines) if all_lines else None
                     
                     # Calculate consensus odds (average of all books)
-                    over_odds = None
-                    under_odds = None
+                    consensus_over_odds = None
+                    consensus_under_odds = None
                     if over_prices:
                         avg_over = sum(over_prices.values()) / len(over_prices)
-                        over_odds = int(round(avg_over))
+                        consensus_over_odds = int(round(avg_over))
                     if under_prices:
                         avg_under = sum(under_prices.values()) / len(under_prices)
-                        under_odds = int(round(avg_under))
+                        consensus_under_odds = int(round(avg_under))
                     
                     snapshot = PropLineSnapshot(
                         event_id=event_id,
@@ -257,8 +257,8 @@ class OddsAPICollector:
                         betmgm_line=lines.get("betmgm", {}).get("line"),
                         caesars_line=lines.get("williamhill_us", {}).get("line"),
                         pointsbet_line=lines.get("pointsbetus", {}).get("line"),
-                        over_odds=over_odds,
-                        under_odds=under_odds,
+                        consensus_over_odds=consensus_over_odds,
+                        consensus_under_odds=consensus_under_odds,
                         snapshot_time=timestamp,
                         source_timestamp=timestamp,
                         hours_before_kickoff=self._calculate_hours_before_kickoff(

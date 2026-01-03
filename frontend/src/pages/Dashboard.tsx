@@ -1,9 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { getDashboardView, LineChangeData, PropDashboardItem, connectDashboardWebSocket, disconnectDashboardWebSocket } from '../api/client'
+import { getDashboardView, LineChangeData, PropDashboardItem, SportsbookData, connectDashboardWebSocket, disconnectDashboardWebSocket } from '../api/client'
 
 type SortField = 'player' | 'current' | 'm5' | 'm10' | 'm15' | 'm30' | 'm45' | 'm60' | 'h12' | 'h24' | 'sinceOpen'
 type SortDirection = 'asc' | 'desc'
+type Sportsbook = 'consensus' | 'draftkings' | 'fanduel' | 'betmgm' | 'caesars' | 'pointsbet'
 
 // Type for tracking which cells have changed
 type CellChanges = {
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [propTypeFilter, setPropTypeFilter] = useState<'all' | 'rushing_yards' | 'receiving_yards'>('all')
   const [playerNameFilter, setPlayerNameFilter] = useState<string>('')
+  const [selectedSportsbook, setSelectedSportsbook] = useState<Sportsbook>('consensus')
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date())
   const [changedCells, setChangedCells] = useState<CellChanges>({})
   const previousDataRef = useRef<PropDashboardItem[]>([])
@@ -77,6 +79,11 @@ export default function Dashboard() {
 
   const propLineData = data?.items || []
 
+  // Helper function to get sportsbook data from an item
+  const getSportsbookData = (item: PropDashboardItem, sportsbook: Sportsbook): SportsbookData | null => {
+    return item[sportsbook] || null
+  }
+
   // Detect changes when data updates
   useEffect(() => {
     if (!propLineData || propLineData.length === 0) return
@@ -93,10 +100,16 @@ export default function Dashboard() {
 
       const changes: CellChanges[string] = { rowChanged: false }
 
+      // Get sportsbook data for comparison
+      const newBookData = getSportsbookData(newItem, selectedSportsbook)
+      const oldBookData = getSportsbookData(oldItem, selectedSportsbook)
+
+      if (!newBookData || !oldBookData) return
+
       // Check current line
-      if (newItem.current_line !== oldItem.current_line || 
-          newItem.current_over_odds !== oldItem.current_over_odds ||
-          newItem.current_under_odds !== oldItem.current_under_odds) {
+      if (newBookData.current_line !== oldBookData.current_line || 
+          newBookData.current_over_odds !== oldBookData.current_over_odds ||
+          newBookData.current_under_odds !== oldBookData.current_under_odds) {
         changes.current = true
         changes.rowChanged = true
       }
@@ -109,39 +122,39 @@ export default function Dashboard() {
       }
 
       // Check all time windows
-      if (hasLineChangeDataChanged(newItem.m5, oldItem.m5)) {
+      if (hasLineChangeDataChanged(newBookData.m5, oldBookData.m5)) {
         changes.m5 = true
         changes.rowChanged = true
       }
-      if (hasLineChangeDataChanged(newItem.m10, oldItem.m10)) {
+      if (hasLineChangeDataChanged(newBookData.m10, oldBookData.m10)) {
         changes.m10 = true
         changes.rowChanged = true
       }
-      if (hasLineChangeDataChanged(newItem.m15, oldItem.m15)) {
+      if (hasLineChangeDataChanged(newBookData.m15, oldBookData.m15)) {
         changes.m15 = true
         changes.rowChanged = true
       }
-      if (hasLineChangeDataChanged(newItem.m30, oldItem.m30)) {
+      if (hasLineChangeDataChanged(newBookData.m30, oldBookData.m30)) {
         changes.m30 = true
         changes.rowChanged = true
       }
-      if (hasLineChangeDataChanged(newItem.m45, oldItem.m45)) {
+      if (hasLineChangeDataChanged(newBookData.m45, oldBookData.m45)) {
         changes.m45 = true
         changes.rowChanged = true
       }
-      if (hasLineChangeDataChanged(newItem.m60, oldItem.m60)) {
+      if (hasLineChangeDataChanged(newBookData.m60, oldBookData.m60)) {
         changes.m60 = true
         changes.rowChanged = true
       }
-      if (hasLineChangeDataChanged(newItem.h12, oldItem.h12)) {
+      if (hasLineChangeDataChanged(newBookData.h12, oldBookData.h12)) {
         changes.h12 = true
         changes.rowChanged = true
       }
-      if (hasLineChangeDataChanged(newItem.h24, oldItem.h24)) {
+      if (hasLineChangeDataChanged(newBookData.h24, oldBookData.h24)) {
         changes.h24 = true
         changes.rowChanged = true
       }
-      if (hasLineChangeDataChanged(newItem.since_open, oldItem.since_open)) {
+      if (hasLineChangeDataChanged(newBookData.since_open, oldBookData.since_open)) {
         changes.sinceOpen = true
         changes.rowChanged = true
       }
@@ -163,12 +176,17 @@ export default function Dashboard() {
 
     // Store current data as previous for next comparison
     previousDataRef.current = propLineData
-  }, [propLineData])
+  }, [propLineData, selectedSportsbook])
 
   const filteredAndSortedData = useMemo(() => {
     // Note: prop_type filtering is now done by the API
-    // Apply player name filter
+    // Apply player name filter and filter out items without selected sportsbook data
     const filtered = propLineData.filter(item => {
+      // Filter out items that don't have data for the selected sportsbook
+      if (!getSportsbookData(item, selectedSportsbook)) {
+        return false
+      }
+      
       if (playerNameFilter) {
         return item.player_name.toLowerCase().includes(playerNameFilter.toLowerCase())
       }
@@ -180,50 +198,55 @@ export default function Dashboard() {
       let aVal: number | null = null
       let bVal: number | null = null
 
+      const aBookData = getSportsbookData(a, selectedSportsbook)
+      const bBookData = getSportsbookData(b, selectedSportsbook)
+
+      if (!aBookData || !bBookData) return 0
+
       switch (sortField) {
         case 'player':
           return sortDirection === 'asc' 
             ? a.player_name.localeCompare(b.player_name)
             : b.player_name.localeCompare(a.player_name)
         case 'current':
-          aVal = a.current_line
-          bVal = b.current_line
+          aVal = aBookData.current_line
+          bVal = bBookData.current_line
           break
         case 'm5':
-          aVal = a.m5.percent
-          bVal = b.m5.percent
+          aVal = aBookData.m5.percent
+          bVal = bBookData.m5.percent
           break
         case 'm10':
-          aVal = a.m10.percent
-          bVal = b.m10.percent
+          aVal = aBookData.m10.percent
+          bVal = bBookData.m10.percent
           break
         case 'm15':
-          aVal = a.m15.percent
-          bVal = b.m15.percent
+          aVal = aBookData.m15.percent
+          bVal = bBookData.m15.percent
           break
         case 'm30':
-          aVal = a.m30.percent
-          bVal = b.m30.percent
+          aVal = aBookData.m30.percent
+          bVal = bBookData.m30.percent
           break
         case 'm45':
-          aVal = a.m45.percent
-          bVal = b.m45.percent
+          aVal = aBookData.m45.percent
+          bVal = bBookData.m45.percent
           break
         case 'm60':
-          aVal = a.m60.percent
-          bVal = b.m60.percent
+          aVal = aBookData.m60.percent
+          bVal = bBookData.m60.percent
           break
         case 'h12':
-          aVal = a.h12.percent
-          bVal = b.h12.percent
+          aVal = aBookData.h12.percent
+          bVal = bBookData.h12.percent
           break
         case 'h24':
-          aVal = a.h24.percent
-          bVal = b.h24.percent
+          aVal = aBookData.h24.percent
+          bVal = bBookData.h24.percent
           break
         case 'sinceOpen':
-          aVal = a.since_open.percent
-          bVal = b.since_open.percent
+          aVal = aBookData.since_open.percent
+          bVal = bBookData.since_open.percent
           break
       }
 
@@ -235,7 +258,7 @@ export default function Dashboard() {
     })
 
     return sorted
-  }, [propLineData, sortField, sortDirection, playerNameFilter])
+  }, [propLineData, sortField, sortDirection, playerNameFilter, selectedSportsbook])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -269,7 +292,6 @@ export default function Dashboard() {
       <div className={`${bgClass} rounded px-1 py-1 text-xs`}>
         {/* From label and old line/odds */}
         <div className="text-dark-400 font-mono mb-0.5 flex items-center justify-center gap-0.5">
-          <span className="text-dark-500 text-[10px]">From</span>
           <span>{change.old_line.toFixed(1)}</span>
           {(change.old_over_odds || change.old_under_odds) && (
             <span className="text-dark-500 text-[10px] flex flex-col items-start">
@@ -392,6 +414,19 @@ export default function Dashboard() {
               </button>
             )}
           </div>
+          <span className="text-sm text-dark-400">Sportsbook:</span>
+          <select
+            value={selectedSportsbook}
+            onChange={(e) => setSelectedSportsbook(e.target.value as Sportsbook)}
+            className="px-4 py-2 bg-dark-900 border border-dark-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+          >
+            <option value="consensus">Consensus</option>
+            <option value="draftkings">DraftKings</option>
+            <option value="fanduel">FanDuel</option>
+            <option value="betmgm">BetMGM</option>
+            <option value="caesars">Caesars</option>
+            <option value="pointsbet">PointsBet</option>
+          </select>
           {playerNameFilter && (
             <span className="text-xs text-dark-400">
               Showing {filteredAndSortedData.length} of {propLineData.length} props
@@ -525,6 +560,9 @@ export default function Dashboard() {
                   const kickoff = formatKickoffTime(item.game_commence_time)
                   const playerKey = `${item.player_name}_${item.prop_type}`
                   const cellChanges = changedCells[playerKey] || {}
+                  const bookData = getSportsbookData(item, selectedSportsbook)
+                  
+                  if (!bookData) return null
                   
                   return (
                   <tr 
@@ -549,31 +587,31 @@ export default function Dashboard() {
                     <td className={`px-1.5 py-1.5 text-center ${cellChanges.current ? 'animate-cell-flash' : ''}`}>
                       <div className="flex items-center justify-center gap-1 font-mono">
                         <span className="text-base font-semibold text-white">
-                          {item.current_line ? item.current_line.toFixed(1) : '—'}
+                          {bookData.current_line ? bookData.current_line.toFixed(1) : '—'}
                         </span>
                         <span className="text-xs text-dark-400 flex flex-col items-start">
-                          {item.current_over_odds && (
+                          {bookData.current_over_odds && (
                             <span>
-                              <span className="text-dark-500">O:</span>{item.current_over_odds > 0 ? `+${item.current_over_odds}` : item.current_over_odds}
+                              <span className="text-dark-500">O:</span>{bookData.current_over_odds > 0 ? `+${bookData.current_over_odds}` : bookData.current_over_odds}
                             </span>
                           )}
-                          {item.current_under_odds && (
+                          {bookData.current_under_odds && (
                             <span>
-                              <span className="text-dark-500">U:</span>{item.current_under_odds > 0 ? `+${item.current_under_odds}` : item.current_under_odds}
+                              <span className="text-dark-500">U:</span>{bookData.current_under_odds > 0 ? `+${bookData.current_under_odds}` : bookData.current_under_odds}
                             </span>
                           )}
                         </span>
                       </div>
                     </td>
-                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.m5 ? 'animate-cell-flash' : ''}`}>{formatChange(item.m5)}</td>
-                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.m10 ? 'animate-cell-flash' : ''}`}>{formatChange(item.m10)}</td>
-                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.m15 ? 'animate-cell-flash' : ''}`}>{formatChange(item.m15)}</td>
-                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.m30 ? 'animate-cell-flash' : ''}`}>{formatChange(item.m30)}</td>
-                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.m45 ? 'animate-cell-flash' : ''}`}>{formatChange(item.m45)}</td>
-                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.m60 ? 'animate-cell-flash' : ''}`}>{formatChange(item.m60)}</td>
-                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.h12 ? 'animate-cell-flash' : ''}`}>{formatChange(item.h12)}</td>
-                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.h24 ? 'animate-cell-flash' : ''}`}>{formatChange(item.h24)}</td>
-                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.sinceOpen ? 'animate-cell-flash' : ''}`}>{formatChange(item.since_open)}</td>
+                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.m5 ? 'animate-cell-flash' : ''}`}>{formatChange(bookData.m5)}</td>
+                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.m10 ? 'animate-cell-flash' : ''}`}>{formatChange(bookData.m10)}</td>
+                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.m15 ? 'animate-cell-flash' : ''}`}>{formatChange(bookData.m15)}</td>
+                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.m30 ? 'animate-cell-flash' : ''}`}>{formatChange(bookData.m30)}</td>
+                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.m45 ? 'animate-cell-flash' : ''}`}>{formatChange(bookData.m45)}</td>
+                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.m60 ? 'animate-cell-flash' : ''}`}>{formatChange(bookData.m60)}</td>
+                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.h12 ? 'animate-cell-flash' : ''}`}>{formatChange(bookData.h12)}</td>
+                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.h24 ? 'animate-cell-flash' : ''}`}>{formatChange(bookData.h24)}</td>
+                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.sinceOpen ? 'animate-cell-flash' : ''}`}>{formatChange(bookData.since_open)}</td>
                   </tr>
                   )
                 })}

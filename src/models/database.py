@@ -71,8 +71,29 @@ class PropLineSnapshot(Base):
     pointsbet_line = Column(Numeric(6, 1), nullable=True)
     
     # Odds (juice) for over/under - stored as American odds
-    over_odds = Column(Integer, nullable=True)
-    under_odds = Column(Integer, nullable=True)
+    # Consensus odds
+    consensus_over_odds = Column(Integer, nullable=True)
+    consensus_under_odds = Column(Integer, nullable=True)
+    
+    # DraftKings odds
+    draftkings_over_odds = Column(Integer, nullable=True)
+    draftkings_under_odds = Column(Integer, nullable=True)
+    
+    # FanDuel odds
+    fanduel_over_odds = Column(Integer, nullable=True)
+    fanduel_under_odds = Column(Integer, nullable=True)
+    
+    # BetMGM odds
+    betmgm_over_odds = Column(Integer, nullable=True)
+    betmgm_under_odds = Column(Integer, nullable=True)
+    
+    # Caesars odds
+    caesars_over_odds = Column(Integer, nullable=True)
+    caesars_under_odds = Column(Integer, nullable=True)
+    
+    # PointsBet odds
+    pointsbet_over_odds = Column(Integer, nullable=True)
+    pointsbet_under_odds = Column(Integer, nullable=True)
     
     # Timestamps
     snapshot_time = Column(DateTime(timezone=True), nullable=False, default=func.now())

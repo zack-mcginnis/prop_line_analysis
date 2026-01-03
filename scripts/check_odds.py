@@ -19,12 +19,12 @@ def check_odds():
         without_odds = 0
         
         for snap in snapshots:
-            has_odds = snap.over_odds is not None or snap.under_odds is not None
+            has_odds = snap.consensus_over_odds is not None or snap.consensus_under_odds is not None
             status = "✓" if has_odds else "✗"
             
             print(f"{status} {snap.player_name[:25]:25} | Line: {snap.consensus_line:5} | "
-                  f"Over: {snap.over_odds if snap.over_odds else 'None':>5} | "
-                  f"Under: {snap.under_odds if snap.under_odds else 'None':>5} | "
+                  f"Over: {snap.consensus_over_odds if snap.consensus_over_odds else 'None':>5} | "
+                  f"Under: {snap.consensus_under_odds if snap.consensus_under_odds else 'None':>5} | "
                   f"Time: {snap.snapshot_time.strftime('%H:%M:%S')}")
             
             if has_odds:

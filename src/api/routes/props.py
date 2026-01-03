@@ -25,8 +25,8 @@ class PropSnapshotResponse(BaseModel):
     draftkings_line: Optional[float]
     fanduel_line: Optional[float]
     betmgm_line: Optional[float]
-    over_odds: Optional[int]
-    under_odds: Optional[int]
+    consensus_over_odds: Optional[int]
+    consensus_under_odds: Optional[int]
     snapshot_time: datetime
     game_commence_time: datetime
     hours_before_kickoff: Optional[float]
@@ -148,8 +148,8 @@ async def get_prop_snapshots(
                 draftkings_line=float(s.draftkings_line) if s.draftkings_line else None,
                 fanduel_line=float(s.fanduel_line) if s.fanduel_line else None,
                 betmgm_line=float(s.betmgm_line) if s.betmgm_line else None,
-                over_odds=s.over_odds,
-                under_odds=s.under_odds,
+                consensus_over_odds=s.consensus_over_odds,
+                consensus_under_odds=s.consensus_under_odds,
                 snapshot_time=s.snapshot_time,
                 game_commence_time=s.game_commence_time,
                 hours_before_kickoff=float(s.hours_before_kickoff) if s.hours_before_kickoff else None,
@@ -287,11 +287,11 @@ async def get_dashboard_data(
     hours_back: int = 48,
 ) -> dict:
     """
-    Get dashboard data with all calculations.
+    Get dashboard data with all calculations for all sportsbooks.
     Used by both HTTP endpoint and WebSocket broadcasts.
     
     Returns:
-        Dictionary matching DashboardResponse schema
+        Dictionary with items containing sportsbook-specific data
     """
     session = get_session()
     try:
@@ -318,6 +318,16 @@ async def get_dashboard_data(
             key = (snap.player_name, snap.prop_type, snap.event_id)
             grouped[key].append(snap)
         
+        # Define sportsbooks to track
+        sportsbooks = {
+            'consensus': ('consensus_line', 'consensus_over_odds', 'consensus_under_odds'),
+            'draftkings': ('draftkings_line', 'draftkings_over_odds', 'draftkings_under_odds'),
+            'fanduel': ('fanduel_line', 'fanduel_over_odds', 'fanduel_under_odds'),
+            'betmgm': ('betmgm_line', 'betmgm_over_odds', 'betmgm_under_odds'),
+            'caesars': ('caesars_line', 'caesars_over_odds', 'caesars_under_odds'),
+            'pointsbet': ('pointsbet_line', 'pointsbet_over_odds', 'pointsbet_under_odds'),
+        }
+        
         # Calculate movements for each player
         dashboard_items = []
         for (player_name, prop_type_enum, event_id), snapshots in grouped.items():
@@ -329,114 +339,131 @@ async def get_dashboard_data(
             
             # Get the most recent snapshot
             latest = snapshots[-1]
-            if not latest.consensus_line:
-                continue
-            
-            current_line = float(latest.consensus_line)
             current_time = latest.snapshot_time
             
-            # Calculate line changes for different time windows
-            def calculate_change(minutes: int, label: Optional[str] = None) -> LineChangeData:
-                if minutes == 0:  # "Since Open" - use first snapshot
-                    first = snapshots[0]
-                    if not first.consensus_line:
-                        return LineChangeData(
-                            minutes=0,
-                            absolute=None,
-                            percent=None,
-                            old_line=None,
-                            old_over_odds=None,
-                            old_under_odds=None,
-                            new_over_odds=None,
-                            new_under_odds=None,
-                            label=label
-                        )
+            # Build item with data for each sportsbook
+            item = {
+                "player_name": player_name,
+                "prop_type": prop_type_enum.value,
+                "event_id": event_id,
+                "game_commence_time": latest.game_commence_time.isoformat(),
+                "snapshot_time": latest.snapshot_time.isoformat(),
+            }
+            
+            # Calculate for each sportsbook
+            for book_name, (line_field, over_odds_field, under_odds_field) in sportsbooks.items():
+                # Get current line for this sportsbook
+                current_line_value = getattr(latest, line_field)
+                if not current_line_value:
+                    # Skip this sportsbook if no data
+                    continue
+                
+                current_line = float(current_line_value)
+                current_over_odds = getattr(latest, over_odds_field)
+                current_under_odds = getattr(latest, under_odds_field)
+                
+                # Function to calculate line changes for this specific sportsbook
+                def calculate_change_for_book(minutes: int, label: Optional[str] = None) -> dict:
+                    if minutes == 0:  # "Since Open" - use first snapshot
+                        first = snapshots[0]
+                        first_line_value = getattr(first, line_field)
+                        if not first_line_value:
+                            return {
+                                "minutes": 0,
+                                "absolute": None,
+                                "percent": None,
+                                "old_line": None,
+                                "old_over_odds": None,
+                                "old_under_odds": None,
+                                "new_over_odds": None,
+                                "new_under_odds": None,
+                                "label": label
+                            }
+                        
+                        old_line = float(first_line_value)
+                        absolute = current_line - old_line
+                        percent = ((current_line - old_line) / old_line) * 100 if old_line != 0 else 0
+                        
+                        return {
+                            "minutes": 0,
+                            "absolute": absolute,
+                            "percent": percent,
+                            "old_line": old_line,
+                            "old_over_odds": getattr(first, over_odds_field),
+                            "old_under_odds": getattr(first, under_odds_field),
+                            "new_over_odds": current_over_odds,
+                            "new_under_odds": current_under_odds,
+                            "label": label
+                        }
                     
-                    old_line = float(first.consensus_line)
+                    # Find snapshot closest to target time
+                    target_time = current_time - timedelta(minutes=minutes)
+                    closest_snap = None
+                    min_diff = timedelta.max
+                    
+                    for snap in snapshots[:-1]:  # Exclude the latest
+                        if snap.snapshot_time > current_time:
+                            continue
+                        snap_line_value = getattr(snap, line_field)
+                        if not snap_line_value:
+                            continue
+                        diff = abs(snap.snapshot_time - target_time)
+                        if diff < min_diff:
+                            min_diff = diff
+                            closest_snap = snap
+                    
+                    if not closest_snap:
+                        return {
+                            "minutes": minutes,
+                            "absolute": None,
+                            "percent": None,
+                            "old_line": None,
+                            "old_over_odds": None,
+                            "old_under_odds": None,
+                            "new_over_odds": None,
+                            "new_under_odds": None,
+                            "label": label
+                        }
+                    
+                    old_line = float(getattr(closest_snap, line_field))
                     absolute = current_line - old_line
                     percent = ((current_line - old_line) / old_line) * 100 if old_line != 0 else 0
                     
-                    return LineChangeData(
-                        minutes=0,
-                        absolute=absolute,
-                        percent=percent,
-                        old_line=old_line,
-                        old_over_odds=first.over_odds,
-                        old_under_odds=first.under_odds,
-                        new_over_odds=latest.over_odds,
-                        new_under_odds=latest.under_odds,
-                        label=label
-                    )
+                    return {
+                        "minutes": minutes,
+                        "absolute": absolute,
+                        "percent": percent,
+                        "old_line": old_line,
+                        "old_over_odds": getattr(closest_snap, over_odds_field),
+                        "old_under_odds": getattr(closest_snap, under_odds_field),
+                        "new_over_odds": current_over_odds,
+                        "new_under_odds": current_under_odds,
+                        "label": label
+                    }
                 
-                # Find snapshot closest to target time
-                target_time = current_time - timedelta(minutes=minutes)
-                closest_snap = None
-                min_diff = timedelta.max
-                
-                for snap in snapshots[:-1]:  # Exclude the latest
-                    if snap.snapshot_time > current_time:
-                        continue
-                    diff = abs(snap.snapshot_time - target_time)
-                    if diff < min_diff:
-                        min_diff = diff
-                        closest_snap = snap
-                
-                if not closest_snap or not closest_snap.consensus_line:
-                    return LineChangeData(
-                        minutes=minutes,
-                        absolute=None,
-                        percent=None,
-                        old_line=None,
-                        old_over_odds=None,
-                        old_under_odds=None,
-                        new_over_odds=None,
-                        new_under_odds=None,
-                        label=label
-                    )
-                
-                old_line = float(closest_snap.consensus_line)
-                absolute = current_line - old_line
-                percent = ((current_line - old_line) / old_line) * 100 if old_line != 0 else 0
-                
-                return LineChangeData(
-                    minutes=minutes,
-                    absolute=absolute,
-                    percent=percent,
-                    old_line=old_line,
-                    old_over_odds=closest_snap.over_odds,
-                    old_under_odds=closest_snap.under_odds,
-                    new_over_odds=latest.over_odds,
-                    new_under_odds=latest.under_odds,
-                    label=label
-                )
+                # Add sportsbook data to item
+                item[book_name] = {
+                    "current_line": current_line,
+                    "current_over_odds": current_over_odds,
+                    "current_under_odds": current_under_odds,
+                    "m5": calculate_change_for_book(5),
+                    "m10": calculate_change_for_book(10),
+                    "m15": calculate_change_for_book(15),
+                    "m30": calculate_change_for_book(30),
+                    "m45": calculate_change_for_book(45),
+                    "m60": calculate_change_for_book(60),
+                    "h12": calculate_change_for_book(12 * 60, "Last 12h"),
+                    "h24": calculate_change_for_book(24 * 60, "Last 24h"),
+                    "since_open": calculate_change_for_book(0, "Since Open")
+                }
             
-            # Create dashboard item with all calculated movements
-            item = PropDashboardItem(
-                player_name=player_name,
-                prop_type=prop_type_enum.value,
-                event_id=event_id,
-                game_commence_time=latest.game_commence_time,
-                current_line=current_line,
-                current_over_odds=latest.over_odds,
-                current_under_odds=latest.under_odds,
-                snapshot_time=latest.snapshot_time,
-                m5=calculate_change(5),
-                m10=calculate_change(10),
-                m15=calculate_change(15),
-                m30=calculate_change(30),
-                m45=calculate_change(45),
-                m60=calculate_change(60),
-                h12=calculate_change(12 * 60, "Last 12h"),
-                h24=calculate_change(24 * 60, "Last 24h"),
-                since_open=calculate_change(0, "Since Open")
-            )
-            
-            dashboard_items.append(item)
+            # Only add item if it has at least consensus data
+            if 'consensus' in item:
+                dashboard_items.append(item)
         
         # Return as dict (JSON-serializable)
-        # Use mode='json' to ensure datetime objects are serialized as ISO strings
         result = {
-            "items": [item.model_dump(mode='json') for item in dashboard_items],
+            "items": dashboard_items,
             "total": len(dashboard_items)
         }
         
@@ -446,13 +473,16 @@ async def get_dashboard_data(
         session.close()
 
 
-@router.get("/dashboard", response_model=DashboardResponse)
+@router.get("/dashboard")
 async def get_dashboard_view(
     prop_type: Optional[str] = Query(None, description="Filter by prop type"),
     hours_back: int = Query(48, description="Look back this many hours for snapshots"),
 ):
     """
-    Get dashboard view with one item per player containing all time-based line movements.
+    Get dashboard view with one item per player containing all time-based line movements
+    for all sportsbooks. Each item contains keys for different sportsbooks (consensus, 
+    draftkings, fanduel, etc.) with their respective line data and movements.
+    
     This endpoint does all calculations on the backend and returns ready-to-display data.
     """
     data = await get_dashboard_data(prop_type=prop_type, hours_back=hours_back)

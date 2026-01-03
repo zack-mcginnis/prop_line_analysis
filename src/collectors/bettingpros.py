@@ -71,8 +71,8 @@ class BettingProsCollector:
         0: "consensus",
         10: "fanduel",
         12: "draftkings",
-        73: "betmgm",
-        74: "caesars",
+        19: "betmgm",
+        13: "caesars",
         78: "pointsbet",
     }
     
@@ -282,8 +282,18 @@ class BettingProsCollector:
             "betmgm_line": None,
             "caesars_line": None,
             "pointsbet_line": None,
-            "over_odds": None,
-            "under_odds": None,
+            "consensus_over_odds": None,
+            "consensus_under_odds": None,
+            "draftkings_over_odds": None,
+            "draftkings_under_odds": None,
+            "fanduel_over_odds": None,
+            "fanduel_under_odds": None,
+            "betmgm_over_odds": None,
+            "betmgm_under_odds": None,
+            "caesars_over_odds": None,
+            "caesars_under_odds": None,
+            "pointsbet_over_odds": None,
+            "pointsbet_under_odds": None,
             "source_timestamp": None,
         }
         
@@ -333,7 +343,7 @@ class BettingProsCollector:
                 continue
             
             line_value = line_data.get('line')
-            odds_value = line_data.get('odds')  # American odds for over
+            odds_value = line_data.get('cost')  # American odds for over (field is 'cost' not 'odds')
             updated = line_data.get('updated')
             
             if line_value is None:
@@ -343,50 +353,70 @@ class BettingProsCollector:
             if updated and (not latest_timestamp or updated > latest_timestamp):
                 latest_timestamp = updated
             
-            # Map book_id to field name
+            # Map book_id to field name and save line + over odds
             if book_id == 0:  # Consensus
                 result['consensus_line'] = Decimal(str(line_value))
                 if odds_value is not None:
-                    result['over_odds'] = int(odds_value)
+                    result['consensus_over_odds'] = int(odds_value)
                     logger.debug(f"      Consensus: {line_value} @ {odds_value} (over odds set)")
                 else:
                     logger.debug(f"      Consensus: {line_value} @ None (no over odds in API)")
             elif book_id == 12:  # DraftKings
                 result['draftkings_line'] = Decimal(str(line_value))
+                if odds_value is not None:
+                    result['draftkings_over_odds'] = int(odds_value)
             elif book_id == 10:  # FanDuel
                 result['fanduel_line'] = Decimal(str(line_value))
-            elif book_id == 73:  # BetMGM
+                if odds_value is not None:
+                    result['fanduel_over_odds'] = int(odds_value)
+            elif book_id == 19:  # BetMGM
                 result['betmgm_line'] = Decimal(str(line_value))
-            elif book_id == 74:  # Caesars
+                if odds_value is not None:
+                    result['betmgm_over_odds'] = int(odds_value)
+            elif book_id == 13:  # Caesars
                 result['caesars_line'] = Decimal(str(line_value))
+                if odds_value is not None:
+                    result['caesars_over_odds'] = int(odds_value)
             elif book_id == 78:  # PointsBet
                 result['pointsbet_line'] = Decimal(str(line_value))
+                if odds_value is not None:
+                    result['pointsbet_over_odds'] = int(odds_value)
         
-        # Extract under odds from under selection (consensus only)
+        # Extract under odds from under selection (all books)
         if under_selection:
             under_books = under_selection.get('books', [])
             logger.debug(f"      Found {len(under_books)} book(s) in under selection")
             for book in under_books:
                 book_id = book.get('id')
-                if book_id == 0:  # Consensus
-                    under_lines = book.get('lines', [])
-                    logger.debug(f"      Consensus under book has {len(under_lines)} line(s)")
-                    if under_lines:
-                        # Get the main line
-                        under_line_data = None
-                        for line in under_lines:
-                            if line.get('main', False) or line == under_lines[0]:
-                                under_line_data = line
-                                break
-                        
-                        if under_line_data:
-                            under_odds_value = under_line_data.get('odds')
-                            if under_odds_value is not None:
-                                result['under_odds'] = int(under_odds_value)
-                                logger.debug(f"      Under odds: {under_odds_value} (set)")
-                            else:
-                                logger.debug(f"      Under odds: None (not in API)")
-                    break
+                under_lines = book.get('lines', [])
+                
+                if not under_lines:
+                    continue
+                
+                # Get the main line
+                under_line_data = None
+                for line in under_lines:
+                    if line.get('main', False) or line == under_lines[0]:
+                        under_line_data = line
+                        break
+                
+                if under_line_data:
+                    under_odds_value = under_line_data.get('cost')  # Field is 'cost' not 'odds'
+                    if under_odds_value is not None:
+                        # Map book_id to the appropriate field
+                        if book_id == 0:  # Consensus
+                            result['consensus_under_odds'] = int(under_odds_value)
+                            logger.debug(f"      Consensus under odds: {under_odds_value}")
+                        elif book_id == 12:  # DraftKings
+                            result['draftkings_under_odds'] = int(under_odds_value)
+                        elif book_id == 10:  # FanDuel
+                            result['fanduel_under_odds'] = int(under_odds_value)
+                        elif book_id == 19:  # BetMGM
+                            result['betmgm_under_odds'] = int(under_odds_value)
+                        elif book_id == 13:  # Caesars
+                            result['caesars_under_odds'] = int(under_odds_value)
+                        elif book_id == 78:  # PointsBet
+                            result['pointsbet_under_odds'] = int(under_odds_value)
         else:
             logger.debug(f"      No under selection found in offer")
         
@@ -400,8 +430,8 @@ class BettingProsCollector:
             return None
         
         # Log final odds values for debugging
-        if result['over_odds'] is None and result['under_odds'] is None:
-            logger.info(f"      ⚠ WARNING: No odds found for {player_name} - over: {result['over_odds']}, under: {result['under_odds']}")
+        if result['consensus_over_odds'] is None and result['consensus_under_odds'] is None:
+            logger.info(f"      ⚠ WARNING: No consensus odds found for {player_name}")
         
         return result
     
@@ -499,8 +529,18 @@ class BettingProsCollector:
             betmgm_line=prop_data.get("betmgm_line"),
             caesars_line=prop_data.get("caesars_line"),
             pointsbet_line=prop_data.get("pointsbet_line"),
-            over_odds=prop_data.get("over_odds"),
-            under_odds=prop_data.get("under_odds"),
+            consensus_over_odds=prop_data.get("consensus_over_odds"),
+            consensus_under_odds=prop_data.get("consensus_under_odds"),
+            draftkings_over_odds=prop_data.get("draftkings_over_odds"),
+            draftkings_under_odds=prop_data.get("draftkings_under_odds"),
+            fanduel_over_odds=prop_data.get("fanduel_over_odds"),
+            fanduel_under_odds=prop_data.get("fanduel_under_odds"),
+            betmgm_over_odds=prop_data.get("betmgm_over_odds"),
+            betmgm_under_odds=prop_data.get("betmgm_under_odds"),
+            caesars_over_odds=prop_data.get("caesars_over_odds"),
+            caesars_under_odds=prop_data.get("caesars_under_odds"),
+            pointsbet_over_odds=prop_data.get("pointsbet_over_odds"),
+            pointsbet_under_odds=prop_data.get("pointsbet_under_odds"),
             snapshot_time=datetime.now(timezone.utc),
             source_timestamp=prop_data.get("source_timestamp"),
             hours_before_kickoff=hours_before,
@@ -704,8 +744,18 @@ class BettingProsCollector:
                 betmgm_line=prop_data.get("betmgm_line"),
                 caesars_line=prop_data.get("caesars_line"),
                 pointsbet_line=prop_data.get("pointsbet_line"),
-                over_odds=prop_data.get("over_odds"),
-                under_odds=prop_data.get("under_odds"),
+                consensus_over_odds=prop_data.get("consensus_over_odds"),
+                consensus_under_odds=prop_data.get("consensus_under_odds"),
+                draftkings_over_odds=prop_data.get("draftkings_over_odds"),
+                draftkings_under_odds=prop_data.get("draftkings_under_odds"),
+                fanduel_over_odds=prop_data.get("fanduel_over_odds"),
+                fanduel_under_odds=prop_data.get("fanduel_under_odds"),
+                betmgm_over_odds=prop_data.get("betmgm_over_odds"),
+                betmgm_under_odds=prop_data.get("betmgm_under_odds"),
+                caesars_over_odds=prop_data.get("caesars_over_odds"),
+                caesars_under_odds=prop_data.get("caesars_under_odds"),
+                pointsbet_over_odds=prop_data.get("pointsbet_over_odds"),
+                pointsbet_under_odds=prop_data.get("pointsbet_under_odds"),
                 snapshot_time=datetime.now(timezone.utc),
                 source_timestamp=prop_data.get("source_timestamp"),
                 hours_before_kickoff=hours_before,

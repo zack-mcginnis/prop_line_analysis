@@ -94,8 +94,8 @@ def load_mock_data(clear_existing: bool = False, dry_run: bool = False) -> int:
             # Generate realistic odds (usually -110, but vary slightly)
             # When line drops significantly, odds typically get juicier on the under
             import random
-            over_odds = snapshot_data.get('over_odds', random.choice([-110, -110, -115, -105]))
-            under_odds = snapshot_data.get('under_odds', random.choice([-110, -110, -115, -105]))
+            consensus_over_odds = snapshot_data.get('over_odds', random.choice([-110, -110, -115, -105]))
+            consensus_under_odds = snapshot_data.get('under_odds', random.choice([-110, -110, -115, -105]))
             
             snapshot = PropLineSnapshot(
                 event_id=event_id,
@@ -111,8 +111,8 @@ def load_mock_data(clear_existing: bool = False, dry_run: bool = False) -> int:
                 betmgm_line=Decimal(str(snapshot_data.get('betmgm_line'))) if snapshot_data.get('betmgm_line') else None,
                 caesars_line=Decimal(str(snapshot_data.get('caesars_line'))) if snapshot_data.get('caesars_line') else None,
                 pointsbet_line=Decimal(str(snapshot_data.get('pointsbet_line'))) if snapshot_data.get('pointsbet_line') else None,
-                over_odds=over_odds,
-                under_odds=under_odds,
+                consensus_over_odds=consensus_over_odds,
+                consensus_under_odds=consensus_under_odds,
                 snapshot_time=snapshot_time,
                 source_timestamp=snapshot_time,
                 hours_before_kickoff=Decimal(str(snapshot_data['hours_before_kickoff'])),
