@@ -5,7 +5,7 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "npx serve@latest -s dist -l 0.0.0.0:$PORT"
+startCommand = "npx serve@latest dist --single --listen $PORT"
 healthcheckPath = "/"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
