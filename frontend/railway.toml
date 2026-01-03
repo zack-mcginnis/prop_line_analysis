@@ -2,11 +2,10 @@
 # https://docs.railway.app/deploy/config-as-code
 
 [build]
-builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
+builder = "NIXPACKS"
 
 [deploy]
-# Let Dockerfile's CMD handle the start command
+startCommand = "npx serve@latest -s dist -l tcp://0.0.0.0:${PORT:-3000}"
 healthcheckPath = "/"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"

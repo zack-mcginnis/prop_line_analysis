@@ -1,0 +1,12 @@
+[phases.setup]
+nixPkgs = ["nodejs-18_x", "yarn"]
+
+[phases.install]
+cmds = ["yarn install --frozen-lockfile"]
+
+[phases.build]
+cmds = ["yarn build"]
+
+[start]
+cmd = "npx serve@latest -s dist -l tcp://0.0.0.0:${PORT:-3000}"
+
