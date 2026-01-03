@@ -88,6 +88,10 @@ ON prop_line_snapshots (prop_type, snapshot_time);
 
 **To apply**: 
 ```bash
+# Production (Railway): runs automatically in start.sh
+alembic upgrade head
+
+# Local development with uv:
 uv run alembic upgrade head
 ```
 
@@ -118,17 +122,20 @@ uv run alembic upgrade head
 
 2. **Apply database migration**:
    ```bash
-   # Via Railway CLI or dashboard
-   railway run uv run alembic upgrade head
+   # Via Railway CLI or dashboard (production)
+   railway run alembic upgrade head
+   
+   # Or locally with uv
+   uv run alembic upgrade head
    ```
    
-   Or add to your `start.sh` script:
+   The migration runs automatically via `start.sh` on deployment:
    ```bash
-   # Run migrations
-   uv run alembic upgrade head
+   # Run migrations (packages installed via pip in Docker)
+   alembic upgrade head
    
    # Then start server
-   uv run uvicorn src.api.main:app --host 0.0.0.0 --port $PORT
+   uvicorn src.api.main:app --host 0.0.0.0 --port $PORT
    ```
 
 3. **Monitor performance**:
