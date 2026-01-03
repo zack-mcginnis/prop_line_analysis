@@ -62,11 +62,18 @@ async def get_movements(
     end_date: Optional[datetime] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
+    include_past_games: bool = Query(False, description="Include games that have already kicked off"),
 ):
-    """Get list of detected line movements."""
+    """Get list of detected line movements. By default, only returns data for upcoming games."""
     session = get_session()
     try:
         query = session.query(LineMovement)
+        
+        # By default, only show games that haven't kicked off yet
+        if not include_past_games:
+            from datetime import timezone
+            current_time_utc = datetime.now(timezone.utc)
+            query = query.filter(LineMovement.game_commence_time > current_time_utc)
         
         if player_name:
             query = query.filter(LineMovement.player_name.ilike(f"%{player_name}%"))

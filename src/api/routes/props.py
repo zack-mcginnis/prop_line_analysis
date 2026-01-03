@@ -125,11 +125,17 @@ async def get_prop_snapshots(
     end_date: Optional[datetime] = Query(None, description="Filter by end date"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(50, ge=1, le=500, description="Items per page"),
+    include_past_games: bool = Query(False, description="Include games that have already kicked off"),
 ):
-    """Get paginated list of prop line snapshots."""
+    """Get paginated list of prop line snapshots. By default, only returns data for upcoming games."""
     session = get_session()
     try:
         query = session.query(PropLineSnapshot)
+        
+        # By default, only show games that haven't kicked off yet
+        if not include_past_games:
+            current_time_utc = datetime.now(timezone.utc)
+            query = query.filter(PropLineSnapshot.game_commence_time > current_time_utc)
         
         if player_name:
             query = query.filter(PropLineSnapshot.player_name.ilike(f"%{player_name}%"))
@@ -267,8 +273,9 @@ async def get_events(
     start_date: Optional[datetime] = Query(None),
     end_date: Optional[datetime] = Query(None),
     limit: int = Query(50, ge=1, le=200),
+    include_past_games: bool = Query(False, description="Include games that have already kicked off"),
 ):
-    """Get list of unique events (games) in the database."""
+    """Get list of unique events (games) in the database. By default, only returns upcoming games."""
     session = get_session()
     try:
         query = session.query(
@@ -277,6 +284,11 @@ async def get_events(
             PropLineSnapshot.away_team,
             PropLineSnapshot.game_commence_time,
         ).distinct()
+        
+        # By default, only show games that haven't kicked off yet
+        if not include_past_games:
+            current_time_utc = datetime.now(timezone.utc)
+            query = query.filter(PropLineSnapshot.game_commence_time > current_time_utc)
         
         if start_date:
             query = query.filter(PropLineSnapshot.game_commence_time >= start_date)
@@ -332,13 +344,13 @@ async def get_dashboard_data(
     session = get_session()
     try:
         # Get all snapshots from the last N hours
-        # OPTIMIZATION: Only get snapshots for games that haven't started yet (plus 6 hours buffer)
+        # IMPORTANT: Only get snapshots for games that haven't kicked off yet
         cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours_back)
-        future_game_cutoff = datetime.now(timezone.utc) - timedelta(hours=6)  # Include recently finished games
+        current_time_utc = datetime.now(timezone.utc)
         
         query = session.query(PropLineSnapshot).filter(
             PropLineSnapshot.snapshot_time >= cutoff_time,
-            PropLineSnapshot.game_commence_time >= future_game_cutoff  # Only active/recent games
+            PropLineSnapshot.game_commence_time > current_time_utc  # Only future games (not yet kicked off)
         )
         
         if prop_type:
