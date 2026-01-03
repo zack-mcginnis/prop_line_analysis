@@ -95,9 +95,17 @@ class PropLineSnapshot(Base):
     pointsbet_over_odds = Column(Integer, nullable=True)
     pointsbet_under_odds = Column(Integer, nullable=True)
     
+    # Timestamps for when each sportsbook updated their lines
+    consensus_timestamp = Column(DateTime(timezone=True), nullable=True)
+    draftkings_timestamp = Column(DateTime(timezone=True), nullable=True)
+    fanduel_timestamp = Column(DateTime(timezone=True), nullable=True)
+    betmgm_timestamp = Column(DateTime(timezone=True), nullable=True)
+    caesars_timestamp = Column(DateTime(timezone=True), nullable=True)
+    pointsbet_timestamp = Column(DateTime(timezone=True), nullable=True)
+    
     # Timestamps
     snapshot_time = Column(DateTime(timezone=True), nullable=False, default=func.now())
-    source_timestamp = Column(DateTime(timezone=True), nullable=True)  # From data source
+    source_timestamp = Column(DateTime(timezone=True), nullable=True)  # From data source (latest update)
     
     # Computed fields
     hours_before_kickoff = Column(Numeric(6, 2), nullable=True)

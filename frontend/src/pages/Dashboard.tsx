@@ -585,22 +585,46 @@ export default function Dashboard() {
                       </div>
                     </td>
                     <td className={`px-1.5 py-1.5 text-center ${cellChanges.current ? 'animate-cell-flash' : ''}`}>
-                      <div className="flex items-center justify-center gap-1 font-mono">
-                        <span className="text-base font-semibold text-white">
-                          {bookData.current_line ? bookData.current_line.toFixed(1) : '—'}
-                        </span>
-                        <span className="text-xs text-dark-400 flex flex-col items-start">
-                          {bookData.current_over_odds && (
-                            <span>
-                              <span className="text-dark-500">O:</span>{bookData.current_over_odds > 0 ? `+${bookData.current_over_odds}` : bookData.current_over_odds}
-                            </span>
-                          )}
-                          {bookData.current_under_odds && (
-                            <span>
-                              <span className="text-dark-500">U:</span>{bookData.current_under_odds > 0 ? `+${bookData.current_under_odds}` : bookData.current_under_odds}
-                            </span>
-                          )}
-                        </span>
+                      <div className="flex flex-col items-center justify-center gap-0.5">
+                        <div className="flex items-center justify-center gap-1 font-mono">
+                          <span className="text-base font-semibold text-white">
+                            {bookData.current_line ? bookData.current_line.toFixed(1) : '—'}
+                          </span>
+                          <span className="text-xs text-dark-400 flex flex-col items-start">
+                            {bookData.current_over_odds && (
+                              <span>
+                                <span className="text-dark-500">O:</span>{bookData.current_over_odds > 0 ? `+${bookData.current_over_odds}` : bookData.current_over_odds}
+                              </span>
+                            )}
+                            {bookData.current_under_odds && (
+                              <span>
+                                <span className="text-dark-500">U:</span>{bookData.current_under_odds > 0 ? `+${bookData.current_under_odds}` : bookData.current_under_odds}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        {bookData.updated && (
+                          <div className="text-[10px] text-dark-500">
+                            {(() => {
+                              const updated = new Date(bookData.updated)
+                              const now = new Date()
+                              const diffMs = now.getTime() - updated.getTime()
+                              const diffMins = Math.floor(diffMs / 60000)
+                              
+                              if (diffMins < 1) return 'just now'
+                              if (diffMins === 1) return '1m ago'
+                              if (diffMins < 60) return `${diffMins}m ago`
+                              
+                              const diffHours = Math.floor(diffMins / 60)
+                              if (diffHours === 1) return '1h ago'
+                              if (diffHours < 24) return `${diffHours}h ago`
+                              
+                              const diffDays = Math.floor(diffHours / 24)
+                              if (diffDays === 1) return '1d ago'
+                              return `${diffDays}d ago`
+                            })()}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className={`px-1.5 py-1.5 text-center ${cellChanges.m5 ? 'animate-cell-flash' : ''}`}>{formatChange(bookData.m5)}</td>

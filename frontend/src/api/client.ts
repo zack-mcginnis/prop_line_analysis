@@ -178,6 +178,7 @@ export interface SportsbookData {
   current_line: number | null
   current_over_odds: number | null
   current_under_odds: number | null
+  updated: string | null  // Timestamp when this book last updated their line
   m5: LineChangeData
   m10: LineChangeData
   m15: LineChangeData

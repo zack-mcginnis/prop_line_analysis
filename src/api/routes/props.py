@@ -58,16 +58,12 @@ class LineChangeData(BaseModel):
     label: Optional[str] = None
 
 
-class PropDashboardItem(BaseModel):
-    """Dashboard item with current line and all time-based movements."""
-    player_name: str
-    prop_type: str
-    event_id: str
-    game_commence_time: datetime
+class SportsbookData(BaseModel):
+    """Data for a specific sportsbook."""
     current_line: Optional[float]
     current_over_odds: Optional[int]
     current_under_odds: Optional[int]
-    snapshot_time: datetime
+    updated: Optional[datetime]  # When this book last updated their line
     m5: LineChangeData
     m10: LineChangeData
     m15: LineChangeData
@@ -77,6 +73,22 @@ class PropDashboardItem(BaseModel):
     h12: LineChangeData
     h24: LineChangeData
     since_open: LineChangeData
+
+
+class PropDashboardItem(BaseModel):
+    """Dashboard item with current line and all time-based movements."""
+    player_name: str
+    prop_type: str
+    event_id: str
+    game_commence_time: datetime
+    snapshot_time: datetime
+    # Sportsbook-specific data
+    consensus: Optional[SportsbookData] = None
+    draftkings: Optional[SportsbookData] = None
+    fanduel: Optional[SportsbookData] = None
+    betmgm: Optional[SportsbookData] = None
+    caesars: Optional[SportsbookData] = None
+    pointsbet: Optional[SportsbookData] = None
 
 
 class DashboardResponse(BaseModel):
@@ -362,6 +374,10 @@ async def get_dashboard_data(
                 current_over_odds = getattr(latest, over_odds_field)
                 current_under_odds = getattr(latest, under_odds_field)
                 
+                # Get the timestamp for when this book last updated
+                timestamp_field = f"{book_name}_timestamp"
+                book_timestamp = getattr(latest, timestamp_field, None)
+                
                 # Function to calculate line changes for this specific sportsbook
                 def calculate_change_for_book(minutes: int, label: Optional[str] = None) -> dict:
                     if minutes == 0:  # "Since Open" - use first snapshot
@@ -446,6 +462,7 @@ async def get_dashboard_data(
                     "current_line": current_line,
                     "current_over_odds": current_over_odds,
                     "current_under_odds": current_under_odds,
+                    "updated": book_timestamp.isoformat() if book_timestamp else None,
                     "m5": calculate_change_for_book(5),
                     "m10": calculate_change_for_book(10),
                     "m15": calculate_change_for_book(15),

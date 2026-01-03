@@ -294,6 +294,12 @@ class BettingProsCollector:
             "caesars_under_odds": None,
             "pointsbet_over_odds": None,
             "pointsbet_under_odds": None,
+            "consensus_timestamp": None,
+            "draftkings_timestamp": None,
+            "fanduel_timestamp": None,
+            "betmgm_timestamp": None,
+            "caesars_timestamp": None,
+            "pointsbet_timestamp": None,
             "source_timestamp": None,
         }
         
@@ -344,7 +350,16 @@ class BettingProsCollector:
             
             line_value = line_data.get('line')
             odds_value = line_data.get('cost')  # American odds for over (field is 'cost' not 'odds')
-            updated = line_data.get('updated')
+            updated_str = line_data.get('updated')
+            
+            # Parse timestamp string to datetime object
+            # Format: '2026-01-03 14:53:38'
+            updated = None
+            if updated_str:
+                try:
+                    updated = datetime.strptime(updated_str, '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone.utc)
+                except (ValueError, AttributeError):
+                    logger.debug(f"      Could not parse timestamp: {updated_str}")
             
             if line_value is None:
                 continue
@@ -353,9 +368,10 @@ class BettingProsCollector:
             if updated and (not latest_timestamp or updated > latest_timestamp):
                 latest_timestamp = updated
             
-            # Map book_id to field name and save line + over odds
+            # Map book_id to field name and save line + over odds + timestamp
             if book_id == 0:  # Consensus
                 result['consensus_line'] = Decimal(str(line_value))
+                result['consensus_timestamp'] = updated
                 if odds_value is not None:
                     result['consensus_over_odds'] = int(odds_value)
                     logger.debug(f"      Consensus: {line_value} @ {odds_value} (over odds set)")
@@ -363,22 +379,27 @@ class BettingProsCollector:
                     logger.debug(f"      Consensus: {line_value} @ None (no over odds in API)")
             elif book_id == 12:  # DraftKings
                 result['draftkings_line'] = Decimal(str(line_value))
+                result['draftkings_timestamp'] = updated
                 if odds_value is not None:
                     result['draftkings_over_odds'] = int(odds_value)
             elif book_id == 10:  # FanDuel
                 result['fanduel_line'] = Decimal(str(line_value))
+                result['fanduel_timestamp'] = updated
                 if odds_value is not None:
                     result['fanduel_over_odds'] = int(odds_value)
             elif book_id == 19:  # BetMGM
                 result['betmgm_line'] = Decimal(str(line_value))
+                result['betmgm_timestamp'] = updated
                 if odds_value is not None:
                     result['betmgm_over_odds'] = int(odds_value)
             elif book_id == 13:  # Caesars
                 result['caesars_line'] = Decimal(str(line_value))
+                result['caesars_timestamp'] = updated
                 if odds_value is not None:
                     result['caesars_over_odds'] = int(odds_value)
             elif book_id == 78:  # PointsBet
                 result['pointsbet_line'] = Decimal(str(line_value))
+                result['pointsbet_timestamp'] = updated
                 if odds_value is not None:
                     result['pointsbet_over_odds'] = int(odds_value)
         
@@ -541,6 +562,12 @@ class BettingProsCollector:
             caesars_under_odds=prop_data.get("caesars_under_odds"),
             pointsbet_over_odds=prop_data.get("pointsbet_over_odds"),
             pointsbet_under_odds=prop_data.get("pointsbet_under_odds"),
+            consensus_timestamp=prop_data.get("consensus_timestamp"),
+            draftkings_timestamp=prop_data.get("draftkings_timestamp"),
+            fanduel_timestamp=prop_data.get("fanduel_timestamp"),
+            betmgm_timestamp=prop_data.get("betmgm_timestamp"),
+            caesars_timestamp=prop_data.get("caesars_timestamp"),
+            pointsbet_timestamp=prop_data.get("pointsbet_timestamp"),
             snapshot_time=datetime.now(timezone.utc),
             source_timestamp=prop_data.get("source_timestamp"),
             hours_before_kickoff=hours_before,
@@ -756,6 +783,12 @@ class BettingProsCollector:
                 caesars_under_odds=prop_data.get("caesars_under_odds"),
                 pointsbet_over_odds=prop_data.get("pointsbet_over_odds"),
                 pointsbet_under_odds=prop_data.get("pointsbet_under_odds"),
+                consensus_timestamp=prop_data.get("consensus_timestamp"),
+                draftkings_timestamp=prop_data.get("draftkings_timestamp"),
+                fanduel_timestamp=prop_data.get("fanduel_timestamp"),
+                betmgm_timestamp=prop_data.get("betmgm_timestamp"),
+                caesars_timestamp=prop_data.get("caesars_timestamp"),
+                pointsbet_timestamp=prop_data.get("pointsbet_timestamp"),
                 snapshot_time=datetime.now(timezone.utc),
                 source_timestamp=prop_data.get("source_timestamp"),
                 hours_before_kickoff=hours_before,
