@@ -1,15 +1,35 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState, useMemo, useEffect } from 'react'
-import { getDashboardView, LineChangeData, connectDashboardWebSocket, disconnectDashboardWebSocket } from '../api/client'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { getDashboardView, LineChangeData, PropDashboardItem, connectDashboardWebSocket, disconnectDashboardWebSocket } from '../api/client'
 
 type SortField = 'player' | 'current' | 'm5' | 'm10' | 'm15' | 'm30' | 'm45' | 'm60' | 'h12' | 'h24' | 'sinceOpen'
 type SortDirection = 'asc' | 'desc'
+
+// Type for tracking which cells have changed
+type CellChanges = {
+  [playerKey: string]: {
+    rowChanged: boolean
+    current?: boolean
+    m5?: boolean
+    m10?: boolean
+    m15?: boolean
+    m30?: boolean
+    m45?: boolean
+    m60?: boolean
+    h12?: boolean
+    h24?: boolean
+    sinceOpen?: boolean
+  }
+}
 
 export default function Dashboard() {
   const [sortField, setSortField] = useState<SortField>('m5')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [propTypeFilter, setPropTypeFilter] = useState<'all' | 'rushing_yards' | 'receiving_yards'>('all')
+  const [playerNameFilter, setPlayerNameFilter] = useState<string>('')
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date())
+  const [changedCells, setChangedCells] = useState<CellChanges>({})
+  const previousDataRef = useRef<PropDashboardItem[]>([])
   const queryClient = useQueryClient()
 
   const { data, isLoading, refetch } = useQuery({
@@ -57,9 +77,103 @@ export default function Dashboard() {
 
   const propLineData = data?.items || []
 
+  // Detect changes when data updates
+  useEffect(() => {
+    if (!propLineData || propLineData.length === 0) return
+
+    const newChanges: CellChanges = {}
+    
+    propLineData.forEach((newItem) => {
+      const playerKey = `${newItem.player_name}_${newItem.prop_type}`
+      const oldItem = previousDataRef.current.find(
+        (item) => `${item.player_name}_${item.prop_type}` === playerKey
+      )
+
+      if (!oldItem) return // New item, skip change detection
+
+      const changes: CellChanges[string] = { rowChanged: false }
+
+      // Check current line
+      if (newItem.current_line !== oldItem.current_line || 
+          newItem.current_over_odds !== oldItem.current_over_odds ||
+          newItem.current_under_odds !== oldItem.current_under_odds) {
+        changes.current = true
+        changes.rowChanged = true
+      }
+
+      // Helper to check if LineChangeData has changed
+      const hasLineChangeDataChanged = (newData: LineChangeData, oldData: LineChangeData) => {
+        return newData.absolute !== oldData.absolute ||
+               newData.percent !== oldData.percent ||
+               newData.old_line !== oldData.old_line
+      }
+
+      // Check all time windows
+      if (hasLineChangeDataChanged(newItem.m5, oldItem.m5)) {
+        changes.m5 = true
+        changes.rowChanged = true
+      }
+      if (hasLineChangeDataChanged(newItem.m10, oldItem.m10)) {
+        changes.m10 = true
+        changes.rowChanged = true
+      }
+      if (hasLineChangeDataChanged(newItem.m15, oldItem.m15)) {
+        changes.m15 = true
+        changes.rowChanged = true
+      }
+      if (hasLineChangeDataChanged(newItem.m30, oldItem.m30)) {
+        changes.m30 = true
+        changes.rowChanged = true
+      }
+      if (hasLineChangeDataChanged(newItem.m45, oldItem.m45)) {
+        changes.m45 = true
+        changes.rowChanged = true
+      }
+      if (hasLineChangeDataChanged(newItem.m60, oldItem.m60)) {
+        changes.m60 = true
+        changes.rowChanged = true
+      }
+      if (hasLineChangeDataChanged(newItem.h12, oldItem.h12)) {
+        changes.h12 = true
+        changes.rowChanged = true
+      }
+      if (hasLineChangeDataChanged(newItem.h24, oldItem.h24)) {
+        changes.h24 = true
+        changes.rowChanged = true
+      }
+      if (hasLineChangeDataChanged(newItem.since_open, oldItem.since_open)) {
+        changes.sinceOpen = true
+        changes.rowChanged = true
+      }
+
+      if (changes.rowChanged) {
+        newChanges[playerKey] = changes
+      }
+    })
+
+    // Update changed cells state if there are any changes
+    if (Object.keys(newChanges).length > 0) {
+      setChangedCells(newChanges)
+      
+      // Clear the highlights after 3 seconds
+      setTimeout(() => {
+        setChangedCells({})
+      }, 3000)
+    }
+
+    // Store current data as previous for next comparison
+    previousDataRef.current = propLineData
+  }, [propLineData])
+
   const filteredAndSortedData = useMemo(() => {
     // Note: prop_type filtering is now done by the API
-    const filtered = propLineData
+    // Apply player name filter
+    const filtered = propLineData.filter(item => {
+      if (playerNameFilter) {
+        return item.player_name.toLowerCase().includes(playerNameFilter.toLowerCase())
+      }
+      return true
+    })
 
     // Sort
     const sorted = [...filtered].sort((a, b) => {
@@ -121,7 +235,7 @@ export default function Dashboard() {
     })
 
     return sorted
-  }, [propLineData, sortField, sortDirection])
+  }, [propLineData, sortField, sortDirection, playerNameFilter])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -152,9 +266,9 @@ export default function Dashboard() {
     const formatOdds = (odds: number | null) => odds ? (odds > 0 ? `+${odds}` : `${odds}`) : ''
 
     return (
-      <div className={`${bgClass} rounded px-2 py-1.5 text-xs`}>
+      <div className={`${bgClass} rounded px-1 py-1 text-xs`}>
         {/* From label and old line/odds */}
-        <div className="text-dark-400 font-mono mb-1 flex items-center justify-center gap-1">
+        <div className="text-dark-400 font-mono mb-0.5 flex items-center justify-center gap-0.5">
           <span className="text-dark-500 text-[10px]">From</span>
           <span>{change.old_line.toFixed(1)}</span>
           {(change.old_over_odds || change.old_under_odds) && (
@@ -166,7 +280,7 @@ export default function Dashboard() {
         </div>
         
         {/* Arrow and change */}
-        <div className={`font-medium ${colorClass} flex items-center justify-center gap-1`}>
+        <div className={`font-medium ${colorClass} flex items-center justify-center gap-0.5`}>
           <span className="text-base">{arrow}</span>
           <span>{Math.abs(change.absolute).toFixed(1)} ({Math.abs(change.percent).toFixed(1)}%)</span>
         </div>
@@ -179,6 +293,36 @@ export default function Dashboard() {
       return <span className="text-dark-600">⇅</span>
     }
     return sortDirection === 'asc' ? <span className="text-blue-400">↑</span> : <span className="text-blue-400">↓</span>
+  }
+
+  const formatKickoffTime = (isoString: string): { date: string; time: string; isToday: boolean; isSoon: boolean } => {
+    const kickoff = new Date(isoString)
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const kickoffDate = new Date(kickoff.getFullYear(), kickoff.getMonth(), kickoff.getDate())
+    const isToday = kickoffDate.getTime() === today.getTime()
+    
+    const hoursUntil = (kickoff.getTime() - now.getTime()) / (1000 * 60 * 60)
+    const isSoon = hoursUntil >= 0 && hoursUntil <= 3
+    
+    const timeStr = kickoff.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    })
+    
+    // Use numeric date format (e.g. "1/4")
+    const dateStr = `${kickoff.getMonth() + 1}/${kickoff.getDate()}`
+    
+    return { date: dateStr, time: timeStr, isToday, isSoon }
+  }
+
+  const formatPropType = (propType: string): string => {
+    const typeMap: { [key: string]: string } = {
+      'rushing_yards': 'Rush Yards',
+      'receiving_yards': 'Rec. Yards'
+    }
+    return typeMap[propType] || propType.replace('_', ' ')
   }
 
   return (
@@ -204,7 +348,7 @@ export default function Dashboard() {
       </div>
 
       {/* Filters */}
-      <div className="card">
+      <div className="card space-y-4">
         <div className="flex items-center gap-4">
           <span className="text-sm text-dark-400">Prop Type:</span>
           <div className="flex gap-2">
@@ -228,6 +372,32 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-dark-400">Player Name:</span>
+          <div className="relative flex-1 max-w-xs">
+            <input
+              type="text"
+              placeholder="Search by player name..."
+              value={playerNameFilter}
+              onChange={(e) => setPlayerNameFilter(e.target.value)}
+              className="w-full px-4 py-2 bg-dark-900 border border-dark-700 rounded-lg text-white placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            />
+            {playerNameFilter && (
+              <button
+                onClick={() => setPlayerNameFilter('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-dark-400 hover:text-white transition-colors"
+                title="Clear filter"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          {playerNameFilter && (
+            <span className="text-xs text-dark-400">
+              Showing {filteredAndSortedData.length} of {propLineData.length} props
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Table */}
@@ -246,124 +416,139 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full" style={{ borderCollapse: 'collapse' }}>
               <thead className="bg-dark-900/50 border-b border-dark-700">
                 <tr>
-                  <th className="px-4 py-3 text-left">
+                  <th className="px-1.5 py-1.5 text-left">
                     <button
                       onClick={() => handleSort('player')}
-                      className="flex items-center gap-2 text-dark-300 hover:text-white text-sm font-medium transition-colors"
+                      className="flex items-center gap-0.5 text-dark-300 hover:text-white text-xs font-medium transition-colors"
                     >
                       Player
                       <SortIcon field="player" />
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-center">
+                  <th className="px-1.5 py-1.5 text-center">
                     <button
                       onClick={() => handleSort('current')}
-                      className="flex items-center justify-center gap-2 text-dark-300 hover:text-white text-sm font-medium transition-colors w-full"
+                      className="flex items-center justify-center gap-0.5 text-dark-300 hover:text-white text-xs font-medium transition-colors w-full"
                     >
                       Current
                       <SortIcon field="current" />
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-center">
+                  <th className="px-1.5 py-1.5 text-center">
                     <button
                       onClick={() => handleSort('m5')}
-                      className="flex items-center justify-center gap-2 text-dark-300 hover:text-white text-sm font-medium transition-colors w-full"
+                      className="flex items-center justify-center gap-0.5 text-dark-300 hover:text-white text-xs font-medium transition-colors w-full"
                     >
-                      Last 5min
+                      5min
                       <SortIcon field="m5" />
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-center">
+                  <th className="px-1.5 py-1.5 text-center">
                     <button
                       onClick={() => handleSort('m10')}
-                      className="flex items-center justify-center gap-2 text-dark-300 hover:text-white text-sm font-medium transition-colors w-full"
+                      className="flex items-center justify-center gap-0.5 text-dark-300 hover:text-white text-xs font-medium transition-colors w-full"
                     >
-                      Last 10min
+                      10min
                       <SortIcon field="m10" />
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-center">
+                  <th className="px-1.5 py-1.5 text-center">
                     <button
                       onClick={() => handleSort('m15')}
-                      className="flex items-center justify-center gap-2 text-dark-300 hover:text-white text-sm font-medium transition-colors w-full"
+                      className="flex items-center justify-center gap-0.5 text-dark-300 hover:text-white text-xs font-medium transition-colors w-full"
                     >
-                      Last 15min
+                      15min
                       <SortIcon field="m15" />
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-center">
+                  <th className="px-1.5 py-1.5 text-center">
                     <button
                       onClick={() => handleSort('m30')}
-                      className="flex items-center justify-center gap-2 text-dark-300 hover:text-white text-sm font-medium transition-colors w-full"
+                      className="flex items-center justify-center gap-0.5 text-dark-300 hover:text-white text-xs font-medium transition-colors w-full"
                     >
-                      Last 30min
+                      30min
                       <SortIcon field="m30" />
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-center">
+                  <th className="px-1.5 py-1.5 text-center">
                     <button
                       onClick={() => handleSort('m45')}
-                      className="flex items-center justify-center gap-2 text-dark-300 hover:text-white text-sm font-medium transition-colors w-full"
+                      className="flex items-center justify-center gap-0.5 text-dark-300 hover:text-white text-xs font-medium transition-colors w-full"
                     >
-                      Last 45min
+                      45min
                       <SortIcon field="m45" />
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-center">
+                  <th className="px-1.5 py-1.5 text-center">
                     <button
                       onClick={() => handleSort('m60')}
-                      className="flex items-center justify-center gap-2 text-dark-300 hover:text-white text-sm font-medium transition-colors w-full"
+                      className="flex items-center justify-center gap-0.5 text-dark-300 hover:text-white text-xs font-medium transition-colors w-full"
                     >
-                      Last 60min
+                      60min
                       <SortIcon field="m60" />
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-center">
+                  <th className="px-1.5 py-1.5 text-center">
                     <button
                       onClick={() => handleSort('h12')}
-                      className="flex items-center justify-center gap-2 text-dark-300 hover:text-white text-sm font-medium transition-colors w-full"
+                      className="flex items-center justify-center gap-0.5 text-dark-300 hover:text-white text-xs font-medium transition-colors w-full"
                     >
-                      Last 12 Hour
+                      12hr
                       <SortIcon field="h12" />
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-center">
+                  <th className="px-1.5 py-1.5 text-center">
                     <button
                       onClick={() => handleSort('h24')}
-                      className="flex items-center justify-center gap-2 text-dark-300 hover:text-white text-sm font-medium transition-colors w-full"
+                      className="flex items-center justify-center gap-0.5 text-dark-300 hover:text-white text-xs font-medium transition-colors w-full"
                     >
-                      Last 24 Hour
+                      24hr
                       <SortIcon field="h24" />
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-center">
+                  <th className="px-1.5 py-1.5 text-center">
                     <button
                       onClick={() => handleSort('sinceOpen')}
-                      className="flex items-center justify-center gap-2 text-dark-300 hover:text-white text-sm font-medium transition-colors w-full"
+                      className="flex items-center justify-center gap-0.5 text-dark-300 hover:text-white text-xs font-medium transition-colors w-full"
                     >
-                      Since Open
+                      Open
                       <SortIcon field="sinceOpen" />
                     </button>
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-dark-700">
-                {filteredAndSortedData.map((item, index) => (
-                  <tr key={`${item.player_name}_${item.prop_type}_${index}`} className="hover:bg-dark-900/30 transition-colors">
-                    <td className="px-4 py-3">
+                {filteredAndSortedData.map((item, index) => {
+                  const kickoff = formatKickoffTime(item.game_commence_time)
+                  const playerKey = `${item.player_name}_${item.prop_type}`
+                  const cellChanges = changedCells[playerKey] || {}
+                  
+                  return (
+                  <tr 
+                    key={`${item.player_name}_${item.prop_type}_${index}`} 
+                    className={`hover:bg-dark-900/30 transition-colors ${
+                      cellChanges.rowChanged ? 'animate-row-flash' : ''
+                    }`}
+                  >
+                    <td className="px-1.5 py-1.5">
                       <div>
-                        <div className="font-medium text-white">{item.player_name}</div>
-                        <div className="text-xs text-dark-400 capitalize">
-                          {item.prop_type.replace('_', ' ')}
+                        <div className="font-medium text-white whitespace-nowrap text-sm">{item.player_name}</div>
+                        <div className="text-xs text-dark-400">
+                          {formatPropType(item.prop_type)}
+                        </div>
+                        <div className={`text-xs mt-0.5 flex items-center gap-0.5 ${
+                          kickoff.isSoon ? 'text-orange-400 font-medium' : 'text-dark-500'
+                        }`}>
+                          <span className="whitespace-nowrap">{kickoff.date} {kickoff.time}</span>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-center">
-                      <div className="flex items-center justify-center gap-2 font-mono">
-                        <span className="text-lg font-semibold text-white">
+                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.current ? 'animate-cell-flash' : ''}`}>
+                      <div className="flex items-center justify-center gap-1 font-mono">
+                        <span className="text-base font-semibold text-white">
                           {item.current_line ? item.current_line.toFixed(1) : '—'}
                         </span>
                         <span className="text-xs text-dark-400 flex flex-col items-start">
@@ -380,17 +565,18 @@ export default function Dashboard() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-center">{formatChange(item.m5)}</td>
-                    <td className="px-4 py-3 text-center">{formatChange(item.m10)}</td>
-                    <td className="px-4 py-3 text-center">{formatChange(item.m15)}</td>
-                    <td className="px-4 py-3 text-center">{formatChange(item.m30)}</td>
-                    <td className="px-4 py-3 text-center">{formatChange(item.m45)}</td>
-                    <td className="px-4 py-3 text-center">{formatChange(item.m60)}</td>
-                    <td className="px-4 py-3 text-center">{formatChange(item.h12)}</td>
-                    <td className="px-4 py-3 text-center">{formatChange(item.h24)}</td>
-                    <td className="px-4 py-3 text-center">{formatChange(item.since_open)}</td>
+                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.m5 ? 'animate-cell-flash' : ''}`}>{formatChange(item.m5)}</td>
+                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.m10 ? 'animate-cell-flash' : ''}`}>{formatChange(item.m10)}</td>
+                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.m15 ? 'animate-cell-flash' : ''}`}>{formatChange(item.m15)}</td>
+                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.m30 ? 'animate-cell-flash' : ''}`}>{formatChange(item.m30)}</td>
+                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.m45 ? 'animate-cell-flash' : ''}`}>{formatChange(item.m45)}</td>
+                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.m60 ? 'animate-cell-flash' : ''}`}>{formatChange(item.m60)}</td>
+                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.h12 ? 'animate-cell-flash' : ''}`}>{formatChange(item.h12)}</td>
+                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.h24 ? 'animate-cell-flash' : ''}`}>{formatChange(item.h24)}</td>
+                    <td className={`px-1.5 py-1.5 text-center ${cellChanges.sinceOpen ? 'animate-cell-flash' : ''}`}>{formatChange(item.since_open)}</td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>
