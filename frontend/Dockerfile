@@ -30,5 +30,6 @@ COPY --from=builder /app/dist ./dist
 EXPOSE 3000
 
 # Serve the static files
-CMD serve -s dist -p ${PORT:-3000}
+# Use shell form to allow PORT variable expansion
+CMD ["sh", "-c", "serve -s dist -p ${PORT:-3000}"]
 
