@@ -24,9 +24,13 @@ git push
 2. Click **"+ New"** → **"Empty Service"**
 3. Click **"Add Source"** → **"GitHub Repo"**
 4. Select your repository
-5. In **Settings** → **Source**:
-   - Set **Root Directory** to: `frontend`
+5. **IMPORTANT**: In **Settings** → **Source**:
+   - Find **"Root Directory"** field
+   - Set it to: `frontend` (just the word "frontend", no slashes)
+   - Save the setting
    - Railway will auto-detect `frontend/Dockerfile`
+
+**This step is critical!** Without setting Root Directory, Railway will use the wrong Dockerfile and fail to build.
 
 ### 3. Set Environment Variable
 
@@ -107,6 +111,18 @@ If you want to be explicit about CORS:
 - Backend allows CORS from `*.railway.app` domains
 
 ## Troubleshooting
+
+### Build Fails with "failed to compute cache key: /run.py not found"
+**Problem**: Railway is using the wrong Dockerfile (root Python Dockerfile instead of frontend Node Dockerfile)
+
+**Solution**: 
+1. Go to Railway service → **Settings** → **Source**
+2. Set **Root Directory** to `frontend`
+3. Save and wait for automatic redeploy
+4. Build should now show `FROM node:18-alpine` instead of `FROM python:3.11-slim`
+
+### Build Fails with Python Errors (when expecting Node)
+Same as above - Railway is using wrong Dockerfile. Set Root Directory to `frontend`.
 
 ### 404 on Frontend
 - Check that Root Directory is set to `frontend` in Railway

@@ -1,0 +1,15 @@
+# Nixpacks configuration for Railway
+# This ensures Nixpacks correctly builds the React + Vite frontend
+
+[phases.setup]
+nixPkgs = ["nodejs-18_x", "yarn"]
+
+[phases.install]
+cmds = ["yarn install --frozen-lockfile"]
+
+[phases.build]
+cmds = ["yarn build"]
+
+[start]
+cmd = "npx serve -s dist -p $PORT"
+

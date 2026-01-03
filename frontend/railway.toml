@@ -2,11 +2,12 @@
 # https://docs.railway.app/deploy/config-as-code
 
 [build]
-builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
+builder = "NIXPACKS"
+# Note: Set Root Directory to "frontend" in Railway dashboard
+# Nixpacks will auto-detect Node.js and build correctly
 
 [deploy]
-startCommand = "serve -s dist -p $PORT"
+startCommand = "npx serve -s dist -p $PORT"
 healthcheckPath = "/"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
