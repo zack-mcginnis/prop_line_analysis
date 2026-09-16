@@ -14,16 +14,6 @@ class Settings(BaseSettings):
         description="PostgreSQL connection string"
     )
     
-    # The Odds API
-    odds_api_key: str = Field(
-        default="",
-        description="API key for The Odds API"
-    )
-    odds_api_base_url: str = Field(
-        default="https://api.the-odds-api.com/v4",
-        description="Base URL for The Odds API"
-    )
-    
     # Scraping Configuration
     scrape_interval_minutes: int = Field(
         default=5,

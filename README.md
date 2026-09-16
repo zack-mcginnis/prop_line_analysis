@@ -10,7 +10,6 @@ This project collects and analyzes prop line data to validate or disprove this h
 
 ## Features
 
-- **Historical Data Collection**: Fetches historical player prop odds from The Odds API
 - **Real-Time Scraping**: Scrapes live prop lines from BettingPros with rate limiting
 - **Player Stats Collection**: Gathers actual player performance from ESPN
 - **Line Movement Detection**: Identifies significant prop line drops before kickoff
@@ -20,13 +19,13 @@ This project collects and analyzes prop line data to validate or disprove this h
 ## Architecture
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  The Odds API   │     │   BettingPros   │     │    ESPN API     │
-│  (Historical)   │     │   (Real-time)   │     │   (Results)     │
-└────────┬────────┘     └────────┬────────┘     └────────┬────────┘
-         │                       │                       │
-         └───────────────────────┼───────────────────────┘
-                                 │
+                    ┌─────────────────┐     ┌─────────────────┐
+                    │   BettingPros   │     │    ESPN API     │
+                    │   (Real-time)   │     │   (Results)     │
+                    └────────┬────────┘     └────────┬────────┘
+                             │                       │
+                             └───────────┬───────────┘
+                                         │
                     ┌────────────▼────────────┐
                     │     FastAPI Backend     │
                     │   ┌─────────────────┐   │
@@ -56,7 +55,6 @@ This project collects and analyzes prop line data to validate or disprove this h
 - Docker and Docker Compose
 - Node.js 18+
 - [Yarn](https://yarnpkg.com/) (JavaScript package manager)
-- The Odds API key (paid plan for historical data)
 
 ### 1. Clone and Setup
 
@@ -74,7 +72,6 @@ uv sync
 cp .env.example .env
 
 # Edit .env and add your API keys
-# - ODDS_API_KEY: Your The Odds API key
 # - DATABASE_URL: PostgreSQL connection string
 ```
 
@@ -178,43 +175,6 @@ After loading mock data, you can:
 - Test the dashboard
 - Verify analysis logic
 
-### Alternative: The Odds API (Optional)
-
-If you upgrade to a higher-tier subscription with player props access:
-
-<details>
-<summary>Click to expand The Odds API usage</summary>
-
-#### Check API Access
-
-```bash
-# Verify what your API subscription includes
-uv run python scripts/check_available_markets.py
-```
-
-#### Live Odds (Requires Pro+ plan)
-
-```bash
-uv run python scripts/fetch_live_odds.py --limit 3 --dry-run
-```
-
-#### Historical Data (Requires Historical plan)
-
-```bash
-# Fetch data for a specific week
-uv run python scripts/fetch_historical_data.py --start 2024-12-17 --end 2024-12-23
-
-# Fetch data for a single day
-uv run python scripts/fetch_historical_data.py --date 2024-12-20
-
-# Dry run (don't save to database)
-uv run python scripts/fetch_historical_data.py --date 2024-12-20 --dry-run
-```
-
-See `API_DATA_SOURCES.md` for detailed information about subscription tiers and costs.
-
-</details>
-
 ### Running Analysis
 
 ```python
@@ -245,7 +205,6 @@ prop_line_movement_analysis/
 ├── alembic/               # Database migrations
 ├── src/
 │   ├── collectors/
-│   │   ├── odds_api.py     # Historical data from The Odds API
 │   │   ├── bettingpros.py  # Real-time scraping
 │   │   ├── espn.py         # Player stats
 │   │   └── player_discovery.py
@@ -289,17 +248,12 @@ The scheduler runs on game days:
 
 ## Data Sources
 
-1. **The Odds API** (Historical)
-   - Player props from 30+ sportsbooks
-   - Historical snapshots every 5-10 minutes
-   - Requires paid plan
-
-2. **BettingPros** (Real-time)
+1. **BettingPros** (Real-time)
    - Consensus lines from major books
    - Web scraping with rate limiting
    - Free to access
 
-3. **ESPN API** (Results)
+2. **ESPN API** (Results)
    - Actual player rushing/receiving stats
    - Free public API
 
